@@ -1,0 +1,1848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Purplle Control Tower — CPT Network Visibility (North Star Spec v2)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --void:#05070a; --bg-canvas:#0a0d12; --bg-panel:#10141b; --bg-panel-raised:#161c26; --bg-inset:#0c1016;
+  --border-hair:#1e2530; --border-mid:#2a3240; --border-strong:#3d4a5e;
+  --text-hi:#e8ecf1; --text-mid:#9aa4b5; --text-low:#5c6577;
+  --accent:#33b9e6; --accent-dim:#123241; --accent-glow:rgba(51,185,230,.35);
+  --status-breach:#ef4a4a; --status-breach-dim:rgba(239,74,74,.15);
+  --status-wip:#f2ac3d; --status-wip-dim:rgba(242,172,61,.15);
+  --status-clear:#3ecf8e; --status-clear-dim:rgba(62,207,142,.15);
+  --status-stuck:#78859a; --status-stuck-dim:rgba(120,133,154,.18);
+  --status-proposed:#b072f0; --status-proposed-dim:rgba(176,114,240,.15);
+  --radius:3px; --font-ui:'Inter',system-ui,-apple-system,Segoe UI,sans-serif;
+  --font-mono:'IBM Plex Mono','SFMono-Regular',Consolas,monospace;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--void);color:var(--text-hi);font-family:var(--font-ui);}
+body{font-size:13px;line-height:1.45;}
+::selection{background:var(--accent-dim);color:#fff;}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-track{background:var(--bg-canvas);}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:5px;}
+a{color:var(--accent);}
+button{font-family:var(--font-ui);cursor:pointer;}
+:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+.mono{font-family:var(--font-mono);}
+.hidden{display:none !important;}
+
+.shell{display:grid;grid-template-rows:auto auto auto 1fr;min-height:100vh;}
+.topstrip{display:flex;align-items:center;justify-content:space-between;padding:9px 18px;background:var(--bg-canvas);border-bottom:1px solid var(--border-hair);flex-wrap:wrap;gap:8px;}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand .dot{width:9px;height:9px;border-radius:50%;background:var(--status-clear);box-shadow:0 0 0 3px var(--status-clear-dim);animation:pulse 2.4s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.45;}}
+.brand .name{font-weight:700;font-size:13.5px;letter-spacing:.02em;}
+.brand .sub{color:var(--text-mid);font-size:11px;letter-spacing:.08em;text-transform:uppercase;border-left:1px solid var(--border-mid);padding-left:10px;margin-left:2px;}
+.topstrip-right{display:flex;align-items:center;gap:14px;font-family:var(--font-mono);font-size:11px;color:var(--text-mid);}
+.badge-env{border:1px solid var(--status-proposed);color:var(--status-proposed);padding:2px 7px;border-radius:20px;font-size:10px;letter-spacing:.06em;text-transform:uppercase;}
+.badge-snap{border:1px solid var(--accent);color:var(--accent);padding:2px 8px;border-radius:20px;font-size:10.5px;letter-spacing:.03em;}
+
+.filterbar{display:flex;flex-wrap:wrap;align-items:center;gap:16px;padding:11px 18px;background:var(--bg-panel);border-bottom:1px solid var(--border-hair);}
+.filter-group{display:flex;align-items:center;gap:8px;}
+.filter-label{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--text-low);white-space:nowrap;}
+.site-select{background:var(--bg-inset);border:1px solid var(--border-mid);color:var(--text-hi);padding:7px 30px 7px 12px;border-radius:3px;font-family:var(--font-mono);font-size:12px;font-weight:700;min-width:230px;appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--accent) 50%),linear-gradient(135deg,var(--accent) 50%,transparent 50%);background-position:calc(100% - 16px) 14px,calc(100% - 11px) 14px;background-size:5px 5px,5px 5px;background-repeat:no-repeat;}
+.seg{display:flex;border:1px solid var(--border-mid);border-radius:20px;overflow:hidden;}
+.seg button{background:var(--bg-panel-raised);color:var(--text-mid);border:none;padding:5px 13px;font-size:11px;font-weight:600;letter-spacing:.03em;border-right:1px solid var(--border-mid);}
+.seg button:last-child{border-right:none;}
+.seg button.active{background:var(--accent);color:#04222c;}
+.seg.lens button.active{background:var(--status-proposed);color:#1b0a30;}
+.seg.mode{border-color:var(--status-proposed);}
+.seg.mode button.active{background:var(--status-proposed);color:#1b0a30;}
+.spacer{flex:1;}
+
+.body{display:grid;grid-template-columns:200px 1fr;min-height:0;}
+.sidebar{background:var(--bg-canvas);border-right:1px solid var(--border-hair);padding:14px 0;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:12px;color:var(--text-mid);cursor:pointer;border-left:2px solid transparent;font-weight:500;}
+.nav-item .glyph{font-family:var(--font-mono);color:var(--text-low);width:14px;text-align:center;}
+.nav-item:hover{color:var(--text-hi);background:var(--bg-panel);}
+.nav-item.active{color:var(--accent);border-left-color:var(--accent);background:var(--bg-panel);}
+.nav-item.active .glyph{color:var(--accent);}
+.nav-divider{height:1px;background:var(--border-hair);margin:10px 18px;}
+.nav-caption{padding:10px 18px 4px;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-low);}
+
+.main{padding:20px 24px 60px;overflow-x:auto;}
+.section{display:none;}
+.section.active{display:block;}
+.section-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+.section-title{font-size:17px;font-weight:700;letter-spacing:-.01em;}
+.section-desc{color:var(--text-mid);font-size:12px;margin-top:3px;max-width:780px;}
+.section-tag{font-family:var(--font-mono);font-size:10px;padding:3px 8px;border-radius:3px;letter-spacing:.05em;}
+.tag-live{background:var(--status-clear-dim);color:var(--status-clear);border:1px solid var(--status-clear);}
+.tag-proposed{background:var(--status-proposed-dim);color:var(--status-proposed);border:1px solid var(--status-proposed);}
+
+.panel{background:var(--bg-panel);border:1px solid var(--border-hair);border-radius:var(--radius);margin-bottom:18px;}
+.panel-head{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-bottom:1px solid var(--border-hair);flex-wrap:wrap;gap:6px;}
+.panel-title{font-size:12.5px;font-weight:700;letter-spacing:.02em;}
+.panel-body{padding:16px;}
+.kicker{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-low);}
+
+.statrow{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:18px;}
+.statcard{background:var(--bg-panel);border:1px solid var(--border-hair);border-radius:var(--radius);padding:12px 14px;}
+.statcard .n{font-family:var(--font-mono);font-size:22px;font-weight:600;}
+.statcard .l{font-size:10.5px;color:var(--text-mid);text-transform:uppercase;letter-spacing:.05em;margin-top:2px;}
+.statcard.c-breach .n{color:var(--status-breach);}
+.statcard.c-wip .n{color:var(--status-wip);}
+.statcard.c-clear .n{color:var(--status-clear);}
+.statcard.c-stuck .n{color:var(--status-stuck);}
+.statcard.c-proposed .n{color:var(--status-proposed);}
+
+table{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:11.5px;}
+th{text-align:left;color:var(--text-low);font-weight:600;text-transform:uppercase;letter-spacing:.04em;font-size:10px;padding:8px 10px;border-bottom:1px solid var(--border-mid);white-space:nowrap;background:var(--bg-panel-raised);position:sticky;top:0;}
+td{padding:7px 10px;border-bottom:1px solid var(--border-hair);color:var(--text-hi);white-space:nowrap;}
+tr:hover td{background:var(--bg-panel-raised);}
+tr.row-all td{background:var(--bg-inset);font-weight:700;border-bottom:1px solid var(--border-strong);}
+tr.row-selected td{background:var(--accent-dim);}
+.tbl-scroll{overflow-x:auto;}
+
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:3px;font-size:10.5px;font-weight:600;}
+.b-breach{background:var(--status-breach-dim);color:var(--status-breach);}
+.b-wip{background:var(--status-wip-dim);color:var(--status-wip);}
+.b-clear{background:var(--status-clear-dim);color:var(--status-clear);}
+.b-stuck{background:var(--status-stuck-dim);color:var(--status-stuck);}
+.b-proposed{background:var(--status-proposed-dim);color:var(--status-proposed);border:1px dashed var(--status-proposed);}
+
+/* ---- RODEO grid (leg x cutoff-wave / dwell-bucket) ---- */
+.grid-wrap{overflow-x:auto;}
+.rodeo-table th.colhead{text-align:center;}
+.rodeo-table th.colhead .t{font-size:12px;color:var(--text-hi);font-weight:700;}
+.rodeo-table th.colhead .s{display:block;font-size:9px;margin-top:2px;font-weight:600;letter-spacing:.03em;}
+.rodeo-table th.colhead .s.past{color:var(--status-breach);}
+.rodeo-table th.colhead .s.future{color:var(--status-clear);}
+.rodeo-table td.legcell{color:var(--text-hi);font-weight:700;font-family:var(--font-ui);font-size:11.5px;text-transform:none;background:var(--bg-panel-raised);}
+.cell-btn{
+  display:block;width:100%;background:none;border:1px solid transparent;border-radius:3px;padding:6px 4px;text-align:center;
+  font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--text-hi);
+}
+.cell-btn:hover{border-color:var(--accent);background:var(--bg-inset);}
+.cell-btn .sub{display:block;font-size:9px;font-weight:600;margin-top:2px;color:var(--status-stuck);}
+.cell-btn.z-breach{color:var(--status-breach);}
+.cell-btn.z-wip{color:var(--status-wip);}
+.cell-btn.z-clear{color:var(--status-clear);}
+.cell-btn.z-empty{color:var(--text-low);font-weight:400;}
+.cell-btn.merged{cursor:pointer;}
+
+/* partner pickup table */
+.status-pill{padding:2px 9px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.02em;}
+
+.toolrow{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+.btn{background:var(--bg-panel-raised);border:1px solid var(--border-mid);color:var(--text-hi);padding:7px 13px;border-radius:3px;font-size:11.5px;font-weight:600;font-family:var(--font-ui);}
+.btn:hover{border-color:var(--accent);color:var(--accent);}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#04222c;}
+.btn.primary:hover{color:#04222c;filter:brightness(1.1);}
+.btn.small{padding:4px 10px;font-size:10.5px;}
+.searchbox{background:var(--bg-inset);border:1px solid var(--border-mid);border-radius:3px;color:var(--text-hi);padding:7px 10px;font-family:var(--font-mono);font-size:11.5px;min-width:220px;}
+.select{background:var(--bg-inset);border:1px solid var(--border-mid);border-radius:3px;color:var(--text-hi);padding:6px 8px;font-size:11.5px;font-family:var(--font-ui);}
+
+.gate{text-align:center;padding:60px 20px;color:var(--text-mid);}
+.padcell{display:flex;flex-direction:column;gap:3px;min-width:74px;}
+.padcell .val{font-family:var(--font-mono);font-weight:700;font-size:12.5px;}
+.padbar{height:5px;width:100%;background:var(--bg-inset);border-radius:3px;overflow:hidden;}
+.padbar i{display:block;height:100%;border-radius:3px;}
+.gate .big{font-size:30px;margin-bottom:10px;}
+
+.heatgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
+.heat-tile{border-radius:4px;padding:11px 12px;border:1px solid rgba(255,255,255,.08);cursor:pointer;transition:.12s;}
+.heat-tile:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.3);}
+.heat-tile .code{font-family:var(--font-mono);font-weight:700;font-size:12px;color:#fff;}
+.heat-tile .name{font-size:9.5px;color:rgba(255,255,255,.75);margin:2px 0 8px;}
+.heat-tile .score{font-family:var(--font-mono);font-size:19px;font-weight:700;color:#fff;}
+.heat-tile .score-l{font-size:9px;color:rgba(255,255,255,.75);text-transform:uppercase;letter-spacing:.04em;}
+.heat-legend{display:flex;align-items:center;gap:6px;margin-top:12px;font-size:10px;color:var(--text-mid);}
+.heat-legend .bar{flex:1;max-width:220px;height:8px;border-radius:4px;background:linear-gradient(90deg,#2461a8,#2e9e6b,#e8c547,#e0752f,#c62828);}
+
+td.lb-legcell{background:var(--bg-panel-raised);font-weight:700;font-size:10.5px;}
+td.lb-sitehead{background:var(--bg-inset);font-weight:700;color:var(--accent);font-size:11.5px;padding-top:12px;}
+.lb-closed{color:var(--text-low);font-size:10px;text-align:center;}
+
+/* ---- MODALS ---- */
+.modal-overlay{position:fixed;inset:0;background:rgba(2,4,8,.75);display:none;align-items:flex-start;justify-content:center;z-index:80;padding:38px 18px;overflow-y:auto;}
+.modal-overlay.show{display:flex;}
+.modal-box{background:var(--bg-panel);border:1px solid var(--border-strong);border-radius:6px;width:min(1120px,96vw);max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.65);}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border-mid);gap:12px;}
+.modal-title{font-size:13.5px;font-weight:700;}
+.modal-sub{font-size:11px;color:var(--text-mid);margin-top:2px;font-family:var(--font-mono);}
+.modal-actions{display:flex;gap:8px;align-items:center;flex-shrink:0;}
+.modal-body{padding:16px 18px;overflow-y:auto;}
+.modal-close-x{background:none;border:none;color:var(--text-mid);font-size:20px;padding:0 4px;line-height:1;}
+.modal-close-x:hover{color:var(--status-breach);}
+
+.timeline{display:flex;align-items:center;margin:8px 0 18px;overflow-x:auto;}
+.tl-step{flex:1;min-width:104px;text-align:center;position:relative;padding-top:14px;}
+.tl-step .node{width:11px;height:11px;border-radius:50%;background:var(--bg-inset);border:2px solid var(--border-strong);margin:0 auto 6px;position:relative;z-index:2;}
+.tl-step.done .node{background:var(--status-clear);border-color:var(--status-clear);}
+.tl-step.current .node{background:var(--status-wip);border-color:var(--status-wip);box-shadow:0 0 0 4px var(--status-wip-dim);}
+.tl-step.pending .node{background:var(--bg-inset);border-color:var(--border-mid);}
+.tl-step .line{position:absolute;top:19px;left:-50%;width:100%;height:2px;background:var(--border-strong);z-index:1;}
+.tl-step.done .line{background:var(--status-clear);}
+.tl-step:first-child .line{display:none;}
+.tl-step .label{font-size:10px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.03em;}
+.tl-step.done .label,.tl-step.current .label{color:var(--text-hi);}
+.tl-step .ts{font-family:var(--font-mono);font-size:10.5px;color:var(--text-low);margin-top:2px;}
+
+.rawgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px 20px;margin-bottom:16px;}
+.rawfield .k{font-size:9.5px;color:var(--text-low);text-transform:uppercase;letter-spacing:.06em;}
+.rawfield .v{font-family:var(--font-mono);font-size:12px;margin-top:2px;}
+.rca-inline{background:var(--bg-inset);border:1px solid var(--border-mid);border-radius:3px;padding:14px;}
+.rca-inline .title{font-size:11.5px;font-weight:700;margin-bottom:8px;}
+.rca-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+
+.rca-queue-item{display:grid;grid-template-columns:1.4fr 1fr 1fr 1.3fr 1.3fr auto;gap:12px;align-items:center;padding:11px 14px;border-bottom:1px solid var(--border-hair);}
+.rca-queue-item:hover{background:var(--bg-panel-raised);}
+.rca-queue-item .idcol .sid{font-family:var(--font-mono);font-weight:700;font-size:12px;}
+.rca-queue-item .idcol .meta{font-size:10.5px;color:var(--text-mid);margin-top:1px;}
+
+.snapshot-sheet{background:#f4f2ee;color:#1c1c1c;border-radius:4px;padding:26px 30px;font-family:var(--font-ui);}
+.snapshot-sheet h2{margin:0 0 2px;font-size:17px;color:#3a1547;}
+.snapshot-sheet .meta{font-size:11px;color:#6b6b6b;margin-bottom:18px;}
+.snapshot-sheet table{font-family:var(--font-mono);font-size:11px;color:#1c1c1c;}
+.snapshot-sheet th{background:#eee9e2;color:#555;border-bottom:1px solid #d8d3ca;position:static;}
+.snapshot-sheet td{border-bottom:1px solid #e6e1d8;color:#1c1c1c;}
+.snapshot-sheet tr:hover td{background:transparent;}
+.snap-good{color:#1a8a56;font-weight:700;}
+.snap-bad{color:#c0392b;font-weight:700;}
+.snap-section-title{font-size:12px;font-weight:700;margin:18px 0 8px;color:#3a1547;text-transform:uppercase;letter-spacing:.04em;}
+
+.arch-block{margin-bottom:20px;}
+.arch-block h3{font-size:13px;margin:0 0 8px;color:var(--text-hi);}
+.arch-block p{color:var(--text-mid);font-size:12px;margin:0 0 8px;max-width:820px;}
+.codebox{background:var(--bg-inset);border:1px solid var(--border-mid);border-radius:3px;padding:12px 14px;font-family:var(--font-mono);font-size:11px;color:#9fd8ee;overflow-x:auto;white-space:pre;line-height:1.6;}
+.schema-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;}
+.schema-card{background:var(--bg-inset);border:1px solid var(--border-mid);border-radius:3px;padding:12px 14px;}
+.schema-card .t{font-weight:700;font-size:12px;color:var(--accent);margin-bottom:6px;font-family:var(--font-mono);}
+.schema-card ul{margin:0;padding-left:16px;color:var(--text-mid);font-size:11px;line-height:1.75;}
+.problem-list{padding-left:0;list-style:none;margin:0;}
+.problem-list li{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--border-hair);font-size:12px;color:var(--text-mid);}
+.problem-list li b{color:var(--text-hi);}
+.problem-list .no{font-family:var(--font-mono);color:var(--status-breach);flex-shrink:0;}
+
+@media (max-width:1100px){
+  .body{grid-template-columns:1fr;}
+  .sidebar{display:flex;overflow-x:auto;padding:8px;border-right:none;border-bottom:1px solid var(--border-hair);}
+  .nav-item{border-left:none;border-bottom:2px solid transparent;white-space:nowrap;}
+  .nav-item.active{border-bottom-color:var(--accent);}
+  .nav-divider,.nav-caption{display:none;}
+  .statrow{grid-template-columns:repeat(3,1fr);}
+  .rawgrid{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="topstrip">
+    <div class="brand">
+      <span class="dot"></span>
+      <span class="name">PURPLLE CONTROL TOWER</span>
+      <span class="sub">CPT Network Visibility — North Star Spec v0.2</span>
+    </div>
+    <div class="topstrip-right">
+      <div class="seg mode" id="modeSeg">
+        <button data-val="STANDARD" class="active">Standard</button>
+        <button data-val="RETAILER">Retailer Shipments</button>
+      </div>
+      <span class="badge-env">MOCK DATA · BUILD SPEC</span>
+      <span class="badge-snap">SIMULATED NOW: <span id="simNowLabel"></span> IST</span>
+      <span>SYSTEM CLOCK <span id="liveClock" class="mono">--:--:--</span></span>
+    </div>
+  </div>
+
+  <div class="filterbar">
+    <div class="filter-group">
+      <span class="filter-label">Site</span>
+      <select class="site-select" id="siteSelect"></select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Fulfillment</span>
+      <div class="seg" id="fulfillSeg">
+        <button data-val="ALL" class="active">All</button>
+        <button data-val="NON-RTS">Non-RTS</button>
+        <button data-val="RTS">RTS</button>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <div class="filter-group" id="lensGroup">
+      <span class="filter-label">Lens</span>
+      <div class="seg lens" id="lensSeg">
+        <button data-val="CUTOFF" class="active">Cutoff View</button>
+        <button data-val="DWELL">Dwell View</button>
+      </div>
+    </div>
+    <div class="filter-group hidden" id="retailerSlaGroup">
+      <span class="filter-label">SLA Rule</span>
+      <span class="badge-snap" style="border-color:var(--status-proposed);color:var(--status-proposed);">FLAT 48H DWELL · NO CUTOFF WAVES</span>
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="sidebar" id="sidebar">
+      <div class="nav-caption">Monitor</div>
+      <div class="nav-item active" data-section="overview"><span class="glyph">▣</span>Network Summary</div>
+      <div class="nav-item" data-section="grid"><span class="glyph">▤</span>Site RODEO Grid</div>
+      <div class="nav-item" data-section="hero"><span class="glyph">▥</span>Hero Log Search</div>
+      <div class="nav-divider"></div>
+      <div class="nav-caption">Other B2C Flows</div>
+      <div class="nav-item" data-section="easyecom"><span class="glyph">⬡</span>EasyEcom CPTs</div>
+      <div class="nav-item" data-section="d2c"><span class="glyph">⬢</span>D2C CPTs</div>
+      <div class="nav-divider"></div>
+      <div class="nav-caption">Capacity Planning</div>
+      <div class="nav-item" data-section="loadbalancer"><span class="glyph">▨</span>Load Balancer</div>
+      <div class="nav-item" data-section="padding"><span class="glyph">◫</span>Cutoff Padding</div>
+      <div class="nav-divider"></div>
+      <div class="nav-caption">Configure &amp; Act</div>
+      <div class="nav-item" data-section="cutoff"><span class="glyph">▦</span>Cutoff Master</div>
+      <div class="nav-item" data-section="rca"><span class="glyph">◈</span>RCA Capture</div>
+      <div class="nav-divider"></div>
+      <div class="nav-caption">Distribute</div>
+      <div class="nav-item" data-section="snapshot"><span class="glyph">▧</span>Daily Snapshot</div>
+      <div class="nav-item" data-section="arch"><span class="glyph">◧</span>Architecture Notes</div>
+    </div>
+
+    <div class="main">
+
+      <!-- NETWORK SUMMARY -->
+      <div class="section active" id="sec-overview">
+        <div class="section-head">
+          <div>
+            <div class="section-title">Network Summary</div>
+            <div class="section-desc">Live CPT breach counts and breach % across every FC and MFC, plus the network-wide RCA rollup. Click a site row to open its RODEO grid.</div>
+          </div>
+          <span class="section-tag tag-live" id="ov-lens-tag">CUTOFF VIEW</span>
+        </div>
+        <div class="statrow" id="networkStats"></div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">NETWORK PULSE — ALL SITES</span><span class="kicker">13 FC · 2 MFC</span></div>
+          <div class="panel-body tbl-scroll"><table id="overviewTable"></table></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">ORDER &amp; UNIT PENDENCY BY SITE</span><span class="kicker">backlog vs. daily processing capacity — independent of the Standard/Retailer toggle</span></div>
+          <div class="panel-body tbl-scroll"><table id="pendencyTable"></table></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">NETWORK RISK HEAT MAP</span><span class="kicker">proximity to CPT breach — hotter = higher risk</span></div>
+          <div class="panel-body" id="riskHeatmap"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">NETWORK RCA ROLLUP — ALL CAPTURED, ALL SITES</span><span class="kicker">standardized taxonomy</span></div>
+          <div class="panel-body tbl-scroll"><table id="networkRcaTable"></table></div>
+        </div>
+      </div>
+
+      <!-- SITE RODEO GRID -->
+      <div class="section" id="sec-grid">
+        <div class="section-head">
+          <div>
+            <div class="section-title" id="grid-title">Site RODEO Grid</div>
+            <div class="section-desc" id="grid-desc">Rows are process legs, columns are this site's live cutoff waves. Every number is clickable — it opens the exact list of shipments behind it.</div>
+          </div>
+          <span class="section-tag tag-live" id="grid-lens-tag">CUTOFF VIEW</span>
+        </div>
+        <div id="gridGate"></div>
+      </div>
+
+      <!-- HERO LOG SEARCH -->
+      <div class="section" id="sec-hero">
+        <div class="section-head">
+          <div>
+            <div class="section-title">Hero Log Search</div>
+            <div class="section-desc">Search any shipment directly by order / shipment / crate ID and open its full timeline — the same Hero Log window reachable from every grid cell.</div>
+          </div>
+        </div>
+        <div class="toolrow">
+          <input class="searchbox" id="heroSearch" placeholder="Search order_id / shipment_id / crate_id / SKU…">
+          <select class="select" id="heroStatusFilter">
+            <option value="ALL">All statuses</option>
+            <option value="breach">Breached only</option>
+            <option value="wip">WIP only</option>
+            <option value="clear">Cleared only</option>
+            <option value="stuck">Stuck only</option>
+          </select>
+          <span class="kicker" id="heroCount"></span>
+        </div>
+        <div class="panel"><div class="panel-body tbl-scroll"><table id="heroTable"></table></div></div>
+      </div>
+
+      <!-- EASYECOM CPTs -->
+      <div class="section" id="sec-easyecom">
+        <div class="section-head">
+          <div>
+            <div class="section-title">EasyEcom CPTs — Marketplace Pickups</div>
+            <div class="section-desc">A separate B2C outbound flow from the carrier-network RODEO grid: Flipkart, Amazon, Meesho, and Myntra each run their own pickup cutoff per site through EasyEcom, with their own Order Cutoff ahead of it.</div>
+          </div>
+        </div>
+        <div class="statrow" id="easyecomStats"></div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">PLATFORM BREAKDOWN — NETWORK-WIDE</span></div>
+          <div class="panel-body tbl-scroll"><table id="easyecomPlatformTable"></table></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">SITE × PLATFORM — RAW DETAIL</span><span class="kicker">order cutoff, pickup cutoff, volume</span></div>
+          <div class="panel-body tbl-scroll"><table id="easyecomRawTable"></table></div>
+        </div>
+      </div>
+
+      <!-- D2C CPTs -->
+      <div class="section" id="sec-d2c">
+        <div class="section-head">
+          <div>
+            <div class="section-title">D2C CPTs — Own Site &amp; Private Label Brands</div>
+            <div class="section-desc">Direct-to-consumer orders from Purplle.com and Purplle's own private-label brand storefronts, each with their own handover cutoff and order cutoff per site — separate from both the carrier RODEO grid and the EasyEcom marketplace flow.</div>
+          </div>
+        </div>
+        <div class="statrow" id="d2cStats"></div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">CHANNEL BREAKDOWN — NETWORK-WIDE</span></div>
+          <div class="panel-body tbl-scroll"><table id="d2cChannelTable"></table></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">SITE × CHANNEL — RAW DETAIL</span><span class="kicker">order cutoff, handover cutoff, volume</span></div>
+          <div class="panel-body tbl-scroll"><table id="d2cRawTable"></table></div>
+        </div>
+      </div>
+
+      <!-- LOAD BALANCER -->
+      <div class="section" id="sec-loadbalancer">
+        <div class="section-head">
+          <div>
+            <div class="section-title">Load Balancer</div>
+            <div class="section-desc">Hourly order fall vs. hourly processing, in units, for every site — the raw capacity-planning view behind the pendency numbers above. Independent of the Standard/Retailer toggle: this tracks total physical flow per site.</div>
+          </div>
+        </div>
+        <div class="statrow" id="lbStats"></div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">HOURLY ORDER FALL vs PROCESSING — ALL SITES (UNITS)</span><span class="kicker">grey = site closed that hour</span></div>
+          <div class="panel-body grid-wrap"><table class="rodeo-table" id="loadBalancerTable"></table></div>
+        </div>
+      </div>
+
+      <!-- CUTOFF PADDING -->
+      <div class="section" id="sec-padding">
+        <div class="section-head">
+          <div>
+            <div class="section-title">Order Cutoff → Handover Cutoff Padding</div>
+            <div class="section-desc">Every hub × partner combination carries two deadlines: an <b>Order Cutoff</b> — after which new orders roll to the next day's wave instead of this one — and the <b>Handover Cutoff</b> that CPT is measured against. The gap between the two is that hub's padding: its real processing runway. Thin padding is a leading indicator of CPT breach, independent of volume or backlog, and both the weighted-average and the raw hub-level view need to come down together.</div>
+          </div>
+        </div>
+        <div class="statrow" id="paddingStats"></div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">WEIGHTED AVERAGE PADDING — BY SITE</span><span class="kicker">weighted by hub × partner daily volume · click a row to open that site</span></div>
+          <div class="panel-body tbl-scroll"><table id="paddingSummaryTable"></table></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">HUB × PARTNER PADDING — RAW DETAIL</span><span class="kicker">order cutoff, handover cutoff, padding, volume</span></div>
+          <div class="panel-body tbl-scroll"><table id="paddingRawTable"></table></div>
+        </div>
+      </div>
+
+      <!-- CUTOFF MASTER -->
+      <div class="section" id="sec-cutoff">
+        <div class="section-head">
+          <div>
+            <div class="section-title">Cutoff Master</div>
+            <div class="section-desc">Read-only view of the backend config table. This is the single source of truth for the column headers on every site's RODEO grid — changing a cutoff is a config edit, not a SQL deploy.</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">HUB → CARRIER → CUTOFF WAVE (SAMPLE)</span></div>
+          <div class="panel-body tbl-scroll">
+            <div id="retailerCutoffNote" class="hidden" style="color:var(--text-mid);font-size:12px;padding:6px 4px 12px;">
+              Retailer shipments are not governed by carrier cutoff waves — they run on a flat <b style="color:var(--text-hi);">48-hour dwell SLA</b> instead.
+              Switch to the <b style="color:var(--text-hi);">Site RODEO Grid</b> tab while in Retailer mode to see live dwell-based breach tracking.
+            </div>
+            <table id="cutoffTable"></table>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">BREACH TIERS</span></div>
+          <div class="panel-body">
+            <div class="rawgrid" style="grid-template-columns:1fr 1fr;">
+              <div class="schema-card">
+                <div class="t">① Handover Breach — LIVE TODAY</div>
+                <ul>
+                  <li>Breach = shipment status changes to <b>Handover</b> after the site's configured cutoff wave.</li>
+                  <li>Only tier measured today — fires after the miss has already happened.</li>
+                </ul>
+              </div>
+              <div class="schema-card" style="border-color:var(--status-proposed);">
+                <div class="t" style="color:var(--status-proposed);">② Dispatch / Partner Pickup Breach — PROPOSED</div>
+                <ul>
+                  <li>Shown live on the Site RODEO Grid as the <b>Partner Pickup Confirmation</b> table.</li>
+                  <li>Flags a shipment that is Dispatched/Handed-over in-system but not yet physically picked up by the carrier before cutoff — Purplle has no dock/TDR scan today, so this is a recommended net-new event.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RCA CAPTURE -->
+      <div class="section" id="sec-rca">
+        <div class="section-head">
+          <div>
+            <div class="section-title">RCA Capture</div>
+            <div class="section-desc">Site-gated queue. Select a specific site above to open its breach queue — replaces the daily reply-all RCA email thread with an in-app, standardized capture.</div>
+          </div>
+        </div>
+        <div id="rcaGate"></div>
+      </div>
+
+      <!-- DAILY SNAPSHOT -->
+      <div class="section" id="sec-snapshot">
+        <div class="section-head">
+          <div>
+            <div class="section-title">Daily Snapshot</div>
+            <div class="section-desc">Auto-generated 09:00 IST for the previous business day, emailed to the leadership distribution list as a static one-pager. Replaces the manual N-1 PPT flash.</div>
+          </div>
+          <button class="btn primary" id="genSnapshotBtn">↻ Regenerate preview</button>
+        </div>
+        <div class="snapshot-sheet" id="snapshotSheet"></div>
+      </div>
+
+      <!-- ARCHITECTURE NOTES -->
+      <div class="section" id="sec-arch">
+        <div class="section-head">
+          <div>
+            <div class="section-title">Architecture Notes — for Product &amp; Data Engineering</div>
+            <div class="section-desc">What this screen assumes exists underneath it, and what changes versus the current Metabase build.</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">WHAT'S WRONG WITH THE CURRENT BUILD</span></div>
+          <div class="panel-body">
+            <ul class="problem-list">
+              <li><span class="no">01</span><span><b>Cutoffs are hardcoded in SQL, not config.</b> The live Metabase query encodes ~25 distinct <span class="mono">hub_id</span>/carrier cutoff rules as a CASE-statement stack.</span></li>
+              <li><span class="no">02</span><span><b>The query is duplicated per warehouse.</b> <span class="mono">ps.warehouse_id = 2</span> is hardcoded even in the "network" script.</span></li>
+              <li><span class="no">03</span><span><b>Carrier + cutoff time is baked into a display string</b> — e.g. <span class="mono">"08)Blue-dart-162-2:55PM"</span> — with no clean dimension model behind it.</span></li>
+              <li><span class="no">04</span><span><b>Only one breach signal exists</b> — Handover-vs-cutoff. There is no early-warning tier, and no physical pickup confirmation.</span></li>
+              <li><span class="no">05</span><span><b>RCA lives in email, not in the data model</b> — 15+ recipients, free text, inconsistent labels per site.</span></li>
+              <li><span class="no">06</span><span><b>No leg-by-leg, wave-by-wave visibility</b> — the current summary shows terminal buckets, not "5 stuck in Verified against the 3PM cutoff."</span></li>
+            </ul>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">PROPOSED DATA MODEL</span></div>
+          <div class="panel-body">
+            <div class="schema-grid">
+              <div class="schema-card"><div class="t">Shipment_Master</div><ul><li>shipment_id / order_id / master_shipment_id</li><li>site_id, fulfillment_type, is_express, carrier_id</li><li>sku, title, units, current_container</li><li>current_leg, cutoff_wave_id, pickup_confirmed</li><li>status (clear/wip/breach/stuck)</li></ul></div>
+              <div class="schema-card"><div class="t">Leg_Event_Log</div><ul><li>event_id, shipment_id, leg</li><li>scan_timestamp, operator_id, station_id</li><li>picklist_id / crate_id</li></ul></div>
+              <div class="schema-card"><div class="t">Cutoff_Master (config)</div><ul><li>site_id, carrier_id, is_express</li><li>cutoff_time, effective_from/to, status</li><li>drives every grid column header</li></ul></div>
+              <div class="schema-card"><div class="t">Pickup_Confirmation_Log</div><ul><li>shipment_id, carrier_id</li><li>dispatched_at, pickup_confirmed_at</li><li>powers the Partner Pickup table</li></ul></div>
+              <div class="schema-card"><div class="t">RCA_Log</div><ul><li>shipment_id, bucket, sub_reason (enum)</li><li>captured_by/at, site_id</li></ul></div>
+              <div class="schema-card"><div class="t">Site_Directory / Carrier_Directory</div><ul><li>site_id, site_code, site_name, type</li><li>carrier_id, carrier_name, active</li></ul></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">GRID CELL COMPUTATION — PSEUDOCODE</span></div>
+          <div class="panel-body">
+            <div class="codebox">for each site:
+  waves = Cutoff_Master rows where site_id = site   -- becomes the grid's columns
+  for each leg in [Verified, Processing Pendency, Picking, Packed, Prepared, Dispatched, Handover]:
+    for each wave in waves:
+      cell = shipments where site=site and current_leg=leg and cutoff_wave=wave
+      if leg == Handover:            cell.status = CLEAR
+      elif now() > wave.cutoff_time: cell.status = BREACH        -- today's only signal
+      else:                          cell.status = WIP
+
+Partner_Pickup table (same site, same wave set):
+  for each carrier:
+    assigned  = shipments where carrier=carrier and current_leg in [Dispatched, Handover]
+    confirmed = assigned where pickup_confirmed = true
+    status = BREACH if now() > wave.cutoff_time and pending>0
+             else PENDING if pending>0
+             else ON-TIME
+</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">BUILD LAYERS</span></div>
+          <div class="panel-body">
+            <div class="schema-grid">
+              <div class="schema-card"><div class="t">Ingestion</div><ul><li>One immutable scan event per leg transition, one shared pipeline across all 13 FC + 2 MFC</li></ul></div>
+              <div class="schema-card"><div class="t">Compute</div><ul><li>Cutoff_Master join replaces CASE-statement logic</li><li>Same event log powers both Cutoff View and Dwell View</li></ul></div>
+              <div class="schema-card"><div class="t">Presentation</div><ul><li>Site dropdown → RODEO grid → click a number → shipment list → Hero Log timeline</li></ul></div>
+              <div class="schema-card"><div class="t">Alerting</div><ul><li>Push WIP→imminent alerts pre-cutoff</li><li>RCA_Log rollup replaces the reply-all thread</li></ul></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay"><div class="modal-box" id="modalBox"></div></div>
+
+<script>
+/* =====================================================================
+   PRNG + HELPERS
+===================================================================== */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const rng = mulberry32(20260723);
+function rnd(min,max){return Math.floor(rng()*(max-min+1))+min;}
+function pick(arr){return arr[rnd(0,arr.length-1)];}
+function timeToMin(t){const [h,m]=t.split(':').map(Number);return h*60+m;}
+function minToTime(m){m=((m%1440)+1440)%1440;const h=Math.floor(m/60),mm=m%60;return String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0');}
+function fmtMin(m){const sign=m<0?'-':'';m=Math.abs(m);const h=Math.floor(m/60),mm=m%60;return sign+(h>0?h+'h ':'')+mm+'m';}
+function agoLabel(minsAgo){
+  minsAgo = Math.max(0, Math.round(minsAgo));
+  if(minsAgo<60) return minsAgo+'m ago';
+  const h = Math.floor(minsAgo/60), m = minsAgo%60;
+  if(h<24) return h+'h '+m+'m ago';
+  const d = Math.floor(h/24), rh = h%24;
+  return d+'d '+rh+'h ago';
+}
+
+const REFERENCE_NOW_MIN = timeToMin('16:30');
+
+/* =====================================================================
+   DATA MODEL — MOCK / SAMPLE ONLY
+===================================================================== */
+const SITES = [
+  {code:'FC2',  whId:2,  name:'Mumbai FC (MUM)',      type:'FC',  cap:42000, closed:[]},
+  {code:'FC4',  whId:4,  name:'Gurgaon FC (GGN)',     type:'FC',  cap:25000, closed:[]},
+  {code:'FC10', whId:10, name:'Bengaluru FC (BLR)',   type:'FC',  cap:30000, closed:[]},
+  {code:'FC12', whId:12, name:'Kolkata FC (CCU)',     type:'FC',  cap:27000, closed:[]},
+  {code:'FC16', whId:16, name:'Guwahati FC (GAU)',    type:'FC',  cap:15000, closed:[1,2,3,4]},
+  {code:'FC21', whId:21, name:'Lucknow FC (LKO)',     type:'FC',  cap:16000, closed:[]},
+  {code:'FC25', whId:25, name:'Chennai FC (MAA)',     type:'FC',  cap:20000, closed:[]},
+  {code:'FC28', whId:28, name:'Hyderabad FC (HYD)',   type:'FC',  cap:23000, closed:[]},
+  {code:'FC29', whId:29, name:'Kochi FC (COK)',       type:'FC',  cap:12000, closed:[2,3,4]},
+  {code:'FC40', whId:40, name:'Vijayawada FC (VGA)',  type:'FC',  cap:11000, closed:[]},
+  {code:'FC42', whId:42, name:'Coimbatore FC (CJB)',  type:'FC',  cap:10000, closed:[]},
+  {code:'FC45', whId:45, name:'Patna FC (PTN)',       type:'FC',  cap:9500,  closed:[1,2,3,4,5]},
+  {code:'FC47', whId:47, name:'Bhubaneswar FC (BHU)', type:'FC',  cap:9000,  closed:[0,1,2,3,4,5]},
+  {code:'MFC6018', whId:6018, name:'Micro-FC 6018', type:'MFC', cap:3500, closed:[22,23,0,1,2,3,4,5]},
+  {code:'MFC6032', whId:6032, name:'Micro-FC 6032', type:'MFC', cap:3800, closed:[22,23,0,1,2,3,4,5]},
+];
+
+const CARRIERS = [
+  {id:'DLV',name:'Delhivery',    expCutoff:'23:15'},
+  {id:'BDT',name:'Blue Dart',    expCutoff:'14:55'},
+  {id:'SFX',name:'Shadowfax',    expCutoff:'21:30'},
+  {id:'EKT',name:'Ekart Logistics', expCutoff:'17:00'},
+  {id:'SHY',name:'Shipyaari',    expCutoff:'15:15'},
+  {id:'DTC',name:'DTDC',         expCutoff:'17:30'},
+  {id:'SPD',name:'Ship-Delight', expCutoff:'05:15'},
+];
+const NON_EXPRESS_CUTOFF = '15:00';
+
+const LEGS = [
+  {key:'verified',            label:'Order Verified'},
+  {key:'processing_pendency', label:'Processing Pendency'},
+  {key:'picking',             label:'Picking'},
+  {key:'packed',              label:'Packed'},
+  {key:'prepared',            label:'Prepared'},
+  {key:'dispatched',          label:'Dispatched'},
+  {key:'handover',            label:'Handover'},
+];
+
+const DWELL_BUCKETS = [
+  {key:'b0_2',  label:'0–2h'},
+  {key:'b2_4',  label:'2–4h'},
+  {key:'b4_8',  label:'4–8h'},
+  {key:'b8_12', label:'8–12h'},
+  {key:'b12p',  label:'>12h'},
+];
+function dwellBucketOf(mins){
+  const h = mins/60;
+  if(h<=2) return 'b0_2'; if(h<=4) return 'b2_4'; if(h<=8) return 'b4_8'; if(h<=12) return 'b8_12'; return 'b12p';
+}
+
+/* ---- Retailer shipments: no cutoff wave, flat 48h dwell SLA ---- */
+const RETAILER_BREACH_MIN = 48*60;
+const RETAILER_DWELL_BUCKETS = [
+  {key:'r0_12',  label:'0–12h'},
+  {key:'r12_24', label:'12–24h'},
+  {key:'r24_36', label:'24–36h'},
+  {key:'r36_48', label:'36–48h'},
+  {key:'r48p',   label:'>48h · BREACH'},
+];
+function retailerBucketOf(mins){
+  const h = mins/60;
+  if(h<=12) return 'r0_12'; if(h<=24) return 'r12_24'; if(h<=36) return 'r24_36'; if(h<=48) return 'r36_48'; return 'r48p';
+}
+
+/* ---- Operators + granular event taxonomy for the detailed Hero Log ---- */
+const OPERATORS = ['R. Sharma','A. Iyer','M. Khan','S. Verma','K. Reddy','P. Nair','D. Singh','N. Gowda','J. Fernandes','V. Menon'];
+const GRANULAR_EVENTS = [
+  {leg:0, key:'order_placed',       label:'Order Placed'},
+  {leg:0, key:'order_verified',     label:'Order Verified'},
+  {leg:1, key:'picklist_created',   label:'Picklist Created'},
+  {leg:1, key:'picklist_assigned',  label:'Picklist Assigned'},
+  {leg:2, key:'picking_started',    label:'Picking Started (Bin/Rack Scan)'},
+  {leg:2, key:'picked',             label:'Item Picked / Collected'},
+  {leg:3, key:'container_attached', label:'Container Attached'},
+  {leg:3, key:'packed',             label:'Packed / Box Sealed'},
+  {leg:4, key:'prepared',           label:'Carrier Assigned (Prepared)'},
+  {leg:5, key:'dispatched',         label:'Dispatched to Dock'},
+  {leg:6, key:'handover',           label:'Handover to Carrier'},
+];
+
+const RCA_TAXONOMY = {
+  'FC Controllable': ['Delay in Picking (PNA)','Delay in Packing','Ops Miss — Delay in Handover','Order Verified, Not Racked','Not Ready at Dispatch (NR)'],
+  'FC Non-Controllable': ['Carrier Switch Issue','Carrier Not Assigned / Inactive','Picklist Delay — Zero Inventory','Picklist Delay — Tech Issue','Order Beyond Cutoff at Creation','Postal Code Not Serviceable','Partly Shipped','Courier Assignment Failed']
+};
+
+/* ---- Diagnostic reasons for a shipment stuck at the Verified leg ---- */
+const STUCK_VERIFIED_REASONS = [
+  'Postal Code Serviceability Issue — pincode not mapped to any active hub',
+  'Hub Mapping Issue — order routed to an incorrect / inactive hub',
+  'Address Incomplete or Unparseable',
+  'Duplicate Order Flag — awaiting manual de-duplication',
+  'Payment / Fraud Check Pending',
+  'Inventory Allocation Conflict — SKU reserved against another order',
+];
+
+const SKU_POOL = [
+  {sku:'PRP-LK-2201', title:'Lakme Absolute Matte Lipstick — Cherry Red',         barcode:'8901030845201'},
+  {sku:'PRP-MB-3305', title:'Maybelline Fit Me Foundation 220 Natural Beige',     barcode:'8901030845218'},
+  {sku:'PRP-NK-1187', title:'Nykaa Skin Secret Serum Foundation 30ml',           barcode:'8901030845225'},
+  {sku:'PRP-TO-0091', title:'The Ordinary Niacinamide 10% + Zinc 1% 30ml',       barcode:'8901030845232'},
+  {sku:'PRP-BQ-4471', title:'Biotique Bio Neem Face Wash 150ml',                 barcode:'8901030845249'},
+  {sku:'PRP-MC-2290', title:'mCaffeine Coffee Body Scrub 100g',                  barcode:'8901030845256'},
+  {sku:'PRP-SG-6612', title:'Sugar Cosmetics Matte As Hell Lipstick',            barcode:'8901030845263'},
+  {sku:'PRP-WS-3341', title:'WOW Skin Science Vitamin C Face Serum',             barcode:'8901030845270'},
+  {sku:'PRP-PL-1120', title:'Plum Green Tea Clear Face Toner 200ml',             barcode:'8901030845287'},
+  {sku:'PRP-MN-0087', title:'Minimalist Sunscreen SPF 50 PA+++',                 barcode:'8901030845294'},
+  {sku:'PRP-DT-2233', title:'Dot & Key Vitamin C Glow Serum 30ml',               barcode:'8901030845300'},
+  {sku:'PRP-RE-5540', title:'Renee Fab Base Matte Foundation',                   barcode:'8901030845317'},
+  {sku:'PRP-HN-3390', title:'Honasa Mamaearth Onion Hair Oil 150ml',             barcode:'8901030845324'},
+  {sku:'PRP-FX-1002', title:'Foxtale Dark Spot Corrector Serum',                 barcode:'8901030845331'},
+];
+
+/* ---- Cutoff waves per site (also = single source of truth for Cutoff Master table) ---- */
+const CUTOFF_WAVES_BY_SITE = {};
+const CUTOFF_MASTER = [];
+SITES.forEach((site,i)=>{
+  const cA = CARRIERS[i % CARRIERS.length];
+  const cB = CARRIERS[(i+3) % CARRIERS.length];
+  const waves = [
+    {time:NON_EXPRESS_CUTOFF, minutes:timeToMin(NON_EXPRESS_CUTOFF), label:'Non-Express (All Carriers)', carrier:'All Carriers', isExpress:false},
+    {time:cA.expCutoff, minutes:timeToMin(cA.expCutoff), label:cA.name+' Express', carrier:cA.name, isExpress:true},
+    {time:cB.expCutoff, minutes:timeToMin(cB.expCutoff), label:cB.name+' Express', carrier:cB.name, isExpress:true},
+  ].sort((a,b)=>a.minutes-b.minutes);
+  waves.forEach(w=>{ w.isPast = w.minutes <= REFERENCE_NOW_MIN; });
+  CUTOFF_WAVES_BY_SITE[site.code] = waves;
+  waves.forEach((w,waveIdx)=>{
+    // Each hub = one distinct hub-ID x partner combo at this site. Every hub carries its own
+    // Order Cutoff (after which new orders roll to the next day's wave) ahead of its Handover
+    // Cutoff (what CPT is measured against). The gap between the two is that hub's padding.
+    const hubId = 100 + i*10 + waveIdx;
+    const paddingMin = 75 + Math.round(rng()*245); // 1h15m – 6h padding, varies per hub
+    const orderCutoffMinRaw = w.minutes - paddingMin;
+    const orderCutoffWrapped = orderCutoffMinRaw < 0;
+    const orderCutoff = minToTime(orderCutoffMinRaw) + (orderCutoffWrapped ? ' (D-1)' : '');
+    const volume = Math.round((w.isExpress ? site.cap*0.008 : site.cap*0.018) * (0.7+rng()*0.6));
+    CUTOFF_MASTER.push({
+      site:site.code, hub:hubId, carrier:w.carrier, ful: w.isExpress?'Express':'Non-Express',
+      cutoff:w.time, orderCutoff, paddingMin, volume,
+      eff:'2026-0'+((i%6)+1)+'-0'+((i%9)+1), status:'Active'
+    });
+  });
+});
+
+/* ---- Site-level padding summary: weighted by hub x partner daily volume ---- */
+const PADDING_SUMMARY = {};
+SITES.forEach(site=>{
+  const hubs = CUTOFF_MASTER.filter(c=>c.site===site.code);
+  const totalVolume = hubs.reduce((a,h)=>a+h.volume,0) || 1;
+  const weightedAvgPaddingMin = hubs.reduce((a,h)=>a+h.paddingMin*h.volume,0)/totalVolume;
+  PADDING_SUMMARY[site.code] = {
+    hubCount: hubs.length,
+    totalVolume,
+    weightedAvgPaddingMin,
+    minPaddingMin: Math.min(...hubs.map(h=>h.paddingMin)),
+    maxPaddingMin: Math.max(...hubs.map(h=>h.paddingMin)),
+  };
+});
+
+/* ---- Marketplace (EasyEcom) and D2C channel CPTs — separate B2C outbound flows ----
+   Each channel has its own pickup/handover cutoff and order cutoff per site, independent
+   of the carrier-network RODEO grid above. */
+const EASYECOM_PLATFORMS = [
+  {id:'FLK', name:'Flipkart', cutoff:'18:00'},
+  {id:'AMZ', name:'Amazon',   cutoff:'20:00'},
+  {id:'MSH', name:'Meesho',   cutoff:'16:30'},
+  {id:'MYN', name:'Myntra',   cutoff:'19:00'},
+];
+const D2C_CHANNELS = [
+  {id:'PURPLLE', name:'Purplle.com (D2C)',                cutoff:'20:00'},
+  {id:'BRANDA',  name:'Purplle Private Label — Brand A',  cutoff:'17:30'},
+  {id:'BRANDB',  name:'Purplle Private Label — Brand B',  cutoff:'18:30'},
+  {id:'BRANDC',  name:'Purplle Private Label — Brand C',  cutoff:'16:00'},
+];
+function buildChannelCPTData(channels, volumeShare){
+  const data = [];
+  SITES.forEach(site=>{
+    channels.forEach(ch=>{
+      const cutoffMin = timeToMin(ch.cutoff);
+      const isPast = cutoffMin <= REFERENCE_NOW_MIN;
+      const paddingMin = 45 + Math.round(rng()*150); // 45m – 3h15 padding for platform pickups
+      const orderCutoffRaw = cutoffMin - paddingMin;
+      const orderCutoff = minToTime(orderCutoffRaw) + (orderCutoffRaw<0 ? ' (D-1)' : '');
+      const dailyVolume = Math.max(15, Math.round(site.cap*volumeShare*(0.6+rng()*0.8)));
+      let pending, breached;
+      if(isPast){ pending = Math.round(dailyVolume*(0.02+rng()*0.10)); breached = pending; }
+      else { pending = Math.round(dailyVolume*(0.3+rng()*0.4)); breached = 0; }
+      const cleared = dailyVolume - pending;
+      data.push({
+        site:site.code, siteName:site.name, siteType:site.type,
+        channel:ch.name, channelId:ch.id, cutoff:ch.cutoff, cutoffMin, isPast,
+        orderCutoff, paddingMin, dailyVolume, pending, breached, cleared,
+      });
+    });
+  });
+  return data;
+}
+const EASYECOM_DATA = buildChannelCPTData(EASYECOM_PLATFORMS, 0.006);
+const D2C_DATA = buildChannelCPTData(D2C_CHANNELS, 0.010);
+
+/* ---- Generate mock shipments, wave-anchored so numbers read like a real RODEO grid ---- */
+const SHIPMENTS = [];
+(function generateShipments(){
+  let seq = 111900000;
+  SITES.forEach(site=>{
+    const waves = CUTOFF_WAVES_BY_SITE[site.code];
+    waves.forEach((wave, waveIdx)=>{
+      const n = rnd(6,12);
+      for(let i=0;i<n;i++){
+        seq++;
+        const ful = rng()<0.9 ? 'NON-RTS' : 'RTS';
+        const isRSC = rng()<0.13;
+        const item = pick(SKU_POOL);
+        const units = rnd(1,4);
+
+        // leg distribution depends on whether this wave's cutoff has already passed
+        let legIdx;
+        const r = rng();
+        if(wave.isPast){
+          if(r<0.62) legIdx = 6;                       // handover / cleared
+          else if(r<0.78) legIdx = 5;                   // dispatched, stuck -> breach
+          else if(r<0.90) legIdx = 4;                   // prepared, stuck -> breach
+          else if(r<0.97) legIdx = 3;                   // packed, stuck -> breach
+          else legIdx = rnd(0,2);                        // severely stuck -> breach
+        } else {
+          if(r<0.30) legIdx = 0;
+          else if(r<0.55) legIdx = 1;
+          else if(r<0.75) legIdx = 2;
+          else if(r<0.88) legIdx = 3;
+          else if(r<0.96) legIdx = 4;
+          else legIdx = 5;
+        }
+
+        // dwell time in current leg
+        let dwellMin;
+        if(legIdx===6) dwellMin = 0;
+        else if(wave.isPast) dwellMin = rnd(90, 620);      // stuck past cutoff -> longer dwell
+        else dwellMin = rnd(4, 260);
+
+        let status;
+        if(legIdx===6) status='clear';
+        else if(wave.isPast) status = dwellMin>600 ? 'stuck' : 'breach';
+        else status = dwellMin>360 ? 'stuck' : 'wip';
+
+        const pickupConfirmed = legIdx>=5 ? (wave.isPast ? rng()<0.8 : rng()<0.4) : false;
+        const earlyMinutes = legIdx===6 ? rnd(5,240) : null; // minutes handed over ahead of cutoff
+        const stuckVerifiedReason = legIdx===0 ? pick(STUCK_VERIFIED_REASONS) : null;
+
+        const containerByLeg = ['Bin-'+rnd(100,199),'Bin-'+rnd(100,199),'Tote-'+rnd(300,399),'Carton-'+rnd(500,599),'Cage-'+rnd(10,49),'Dock-'+rnd(1,12),'Vehicle-'+wave.carrier.slice(0,3).toUpperCase()+rnd(1,9)];
+
+        SHIPMENTS.push({
+          order_id: seq,
+          shipment_id: 91300000 + (seq-111900000),
+          master_shipment_id: isRSC ? (91300000 + (seq-111900000) - rnd(1,40)) : null,
+          crate_id: 'RTS'+String(rnd(100,999)).padStart(3,'0'),
+          picklist_id: 32570000 + rnd(0,20000),
+          site: site.code, siteName: site.name, siteType: site.type,
+          fulfillment_type: ful, is_express: wave.isExpress, carrier: wave.carrier,
+          sku: item.sku, title: item.title, barcode: item.barcode, units: units,
+          current_container: containerByLeg[legIdx],
+          waveIndex: waveIdx, waveTime: wave.time, waveLabel: wave.label, waveIsPast: wave.isPast,
+          current_leg: LEGS[legIdx].key, leg_index: legIdx,
+          is_rsc: isRSC, dwell_min: dwellMin, status: status, pickup_confirmed: pickupConfirmed,
+          early_minutes: earlyMinutes, stuck_verified_reason: stuckVerifiedReason,
+          is_retailer: false,
+          rca_bucket: null, rca_subreason: null,
+        });
+      }
+    });
+  });
+})();
+
+/* ---- Generate retailer shipments: no cutoff wave, flat 48h dwell SLA ---- */
+(function generateRetailerShipments(){
+  let seq = 119900000;
+  SITES.forEach(site=>{
+    const n = rnd(9,15);
+    for(let i=0;i<n;i++){
+      seq++;
+      const ful = rng()<0.92 ? 'NON-RTS' : 'RTS';
+      const carrier = pick(CARRIERS);
+      const item = pick(SKU_POOL);
+      const units = rnd(2,10); // retailer / bulk orders skew larger
+
+      const legIdx = rnd(0,6);
+      const dwellMin = rnd(30, 5400); // 30 min to 90 hours, wide enough to cross the 48h line
+
+      let status;
+      if(legIdx===6) status='clear';
+      else if(dwellMin>RETAILER_BREACH_MIN) status='breach';
+      else if(dwellMin>24*60) status='stuck';
+      else status='wip';
+
+      const containerByLeg = ['Bin-'+rnd(100,199),'Bin-'+rnd(100,199),'Tote-'+rnd(300,399),'Carton-'+rnd(500,599),'Cage-'+rnd(10,49),'Dock-'+rnd(1,12),'Vehicle-'+carrier.id+rnd(1,9)];
+      const stuckVerifiedReason = legIdx===0 ? pick(STUCK_VERIFIED_REASONS) : null;
+
+      SHIPMENTS.push({
+        order_id: seq,
+        shipment_id: 91900000 + (seq-119900000),
+        master_shipment_id: null,
+        crate_id: 'RTS'+String(rnd(100,999)).padStart(3,'0'),
+        picklist_id: 32590000 + rnd(0,20000),
+        site: site.code, siteName: site.name, siteType: site.type,
+        fulfillment_type: ful, is_express: false, carrier: carrier.name,
+        sku: item.sku, title: item.title, barcode: item.barcode, units: units,
+        current_container: containerByLeg[legIdx],
+        waveIndex: null, waveTime: null, waveLabel: '— (Retailer, no cutoff wave)', waveIsPast: null,
+        current_leg: LEGS[legIdx].key, leg_index: legIdx,
+        is_rsc: false, dwell_min: dwellMin, status: status, pickup_confirmed: legIdx>=5 ? rng()<0.6 : false,
+        early_minutes: null, stuck_verified_reason: stuckVerifiedReason,
+        is_retailer: true,
+        rca_bucket: null, rca_subreason: null,
+      });
+    }
+  });
+})();
+
+/* =====================================================================
+   CAPACITY / PENDENCY HELPERS
+===================================================================== */
+function siteByCode(code){ return SITES.find(s=>s.code===code); }
+function daysOfPendency(units, site){ return site.cap ? (units/site.cap) : 0; }
+
+/* ---- Hourly order-fall vs processing model per site (for the Load Balancer tab) ---- */
+const HOURLY_WEIGHT = [0.30,0.20,0.15,0.15,0.20,0.40,0.70,1.00,1.30,1.50,1.60,1.50,1.40,1.30,1.40,1.50,1.60,1.50,1.30,1.10,0.90,0.70,0.50,0.40];
+const HOURLY_LOAD = {};
+SITES.forEach((site,idx)=>{
+  const openHours = [...Array(24).keys()].filter(h=>!site.closed.includes(h));
+  const overloadFactor = 0.75 + ((idx*53)%60)/100; // deterministic spread 0.75–1.35 across sites
+  const weightSum = openHours.reduce((a,h)=>a+HOURLY_WEIGHT[h],0) || 1;
+  const hours = [];
+  let cumUnits = 0;
+  for(let h=0; h<24; h++){
+    const isClosed = site.closed.includes(h);
+    let fallUnits=0, procUnits=0;
+    if(!isClosed){
+      const share = HOURLY_WEIGHT[h]/weightSum;
+      procUnits = Math.round(site.cap*share*(0.9+rng()*0.2));
+      fallUnits = Math.round(procUnits*overloadFactor*(0.85+rng()*0.3));
+    }
+    const diff = fallUnits-procUnits;
+    cumUnits += diff;
+    hours.push({hour:h, isClosed, fallUnits, procUnits, diff, cumUnits, pendencyDays: daysOfPendency(Math.max(0,cumUnits), site)});
+  }
+  HOURLY_LOAD[site.code] = { openHours, overloadFactor, hours };
+});
+
+/* ---- Site-level backlog (pendency) model, scaled against real daily capacity ---- */
+const SITE_PENDENCY = {};
+SITES.forEach((site, idx)=>{
+  const totalDays = 0.15 + ((idx*37+11)%100)/100*2.9; // spread ~0.15–3.05 days across the network
+  const totalUnits = Math.round(site.cap*totalDays);
+  const yetShare = 0.30 + ((idx*19)%40)/100; // 0.30–0.70 share still "yet to process"
+  const yetUnits = Math.round(totalUnits*yetShare);
+  const inprocUnits = totalUnits-yetUnits;
+  const avgUnitsPerOrder = 2.4;
+  const totalOrders = Math.max(1, Math.round(totalUnits/avgUnitsPerOrder));
+  const yetOrders = Math.max(0, Math.round(yetUnits/avgUnitsPerOrder));
+  const inprocOrders = Math.max(0, totalOrders-yetOrders);
+  SITE_PENDENCY[site.code] = {
+    totalUnits, yetUnits, inprocUnits, totalOrders, yetOrders, inprocOrders,
+    totalDays: daysOfPendency(totalUnits, site), yetDays: daysOfPendency(yetUnits, site), inprocDays: daysOfPendency(inprocUnits, site),
+  };
+});
+
+const state = { site:'ALL', fulfillment:'ALL', lens:'CUTOFF', mode:'STANDARD', section:'overview', heroSearch:'', heroStatus:'ALL' };
+const modalStack = [];
+
+/* =====================================================================
+   SHARED HELPERS
+===================================================================== */
+function statusBadge(s, textOverride){
+  const map = {breach:{c:'b-breach',t:'BREACHED'},wip:{c:'b-wip',t:'WIP'},clear:{c:'b-clear',t:'CLEAR'},stuck:{c:'b-stuck',t:'STUCK'}};
+  const m = map[s]||map.wip;
+  return '<span class="badge '+m.c+'">'+(textOverride||m.t)+'</span>';
+}
+function filteredShipments({respectSite=true}={}){
+  return SHIPMENTS.filter(s=>{
+    if(!!s.is_retailer !== (state.mode==='RETAILER')) return false;
+    if(respectSite && state.site!=='ALL' && s.site!==state.site) return false;
+    if(state.fulfillment!=='ALL' && s.fulfillment_type!==state.fulfillment) return false;
+    return true;
+  });
+}
+
+/* =====================================================================
+   TOP CONTROLS
+===================================================================== */
+function renderSiteSelect(){
+  const el = document.getElementById('siteSelect');
+  if(el.options.length) { el.value = state.site; return; }
+  let html = '<option value="ALL">— Select a site —</option>';
+  SITES.forEach(s=>{ html += '<option value="'+s.code+'">'+s.code+' · '+s.name+'</option>'; });
+  el.innerHTML = html;
+  el.value = state.site;
+  el.addEventListener('change', ()=>{ state.site = el.value; renderAll(); });
+}
+document.getElementById('fulfillSeg').addEventListener('click',e=>{
+  if(e.target.tagName!=='BUTTON') return;
+  [...e.currentTarget.children].forEach(b=>b.classList.remove('active'));
+  e.target.classList.add('active'); state.fulfillment = e.target.dataset.val; renderAll();
+});
+document.getElementById('lensSeg').addEventListener('click',e=>{
+  if(e.target.tagName!=='BUTTON') return;
+  [...e.currentTarget.children].forEach(b=>b.classList.remove('active'));
+  e.target.classList.add('active'); state.lens = e.target.dataset.val; renderAll();
+});
+document.getElementById('modeSeg').addEventListener('click',e=>{
+  if(e.target.tagName!=='BUTTON') return;
+  [...e.currentTarget.children].forEach(b=>b.classList.remove('active'));
+  e.target.classList.add('active'); state.mode = e.target.dataset.val;
+  document.getElementById('lensGroup').classList.toggle('hidden', state.mode==='RETAILER');
+  document.getElementById('retailerSlaGroup').classList.toggle('hidden', state.mode!=='RETAILER');
+  renderAll();
+});
+document.querySelectorAll('.nav-item').forEach(item=>{
+  item.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+    item.classList.add('active');
+    document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+    document.getElementById('sec-'+item.dataset.section).classList.add('active');
+    state.section = item.dataset.section; renderAll();
+  });
+});
+function goToSite(code){
+  state.site = code;
+  document.getElementById('siteSelect').value = code;
+  document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+  document.querySelector('.nav-item[data-section="grid"]').classList.add('active');
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sec-grid').classList.add('active');
+  state.section='grid'; renderAll();
+}
+
+/* =====================================================================
+   MODAL SYSTEM
+===================================================================== */
+function pushModal(type, payload){ modalStack.push({type,payload}); renderModalTop(); }
+function popModal(){ modalStack.pop(); renderModalTop(); }
+function closeAllModals(){ modalStack.length = 0; renderModalTop(); }
+function renderModalTop(){
+  const overlay = document.getElementById('modalOverlay');
+  if(!modalStack.length){ overlay.classList.remove('show'); return; }
+  overlay.classList.add('show');
+  const top = modalStack[modalStack.length-1];
+  const box = document.getElementById('modalBox');
+  box.innerHTML = top.type==='list' ? listModalHTML(top.payload) : heroModalHTML(top.payload);
+  wireModalEvents(top);
+}
+document.getElementById('modalOverlay').addEventListener('click', e=>{ if(e.target.id==='modalOverlay') closeAllModals(); });
+
+function listModalHTML({title, sub, rows}){
+  const backBtn = modalStack.length>1 ? '<button class="btn small" id="modalBackBtn">← Back</button>' : '';
+  let body = rows.length ? `<table>
+    <tr><th>Order ID</th><th>Shipment ID</th><th>SKU</th><th>Title</th><th>Units</th><th>Current Container</th><th>Dwell</th><th>Status</th><th></th></tr>
+    ${rows.map(r=>`<tr>
+      <td class="mono">${r.order_id}</td><td class="mono">${r.shipment_id}</td><td class="mono">${r.sku}</td>
+      <td style="white-space:normal;max-width:220px;">${r.title}</td><td>${r.units}</td><td>${r.current_container}</td>
+      <td class="mono">${fmtMin(r.dwell_min)}</td><td>${statusBadge(r.status)}</td>
+      <td><button class="btn small hero-open-btn" data-sid="${r.shipment_id}">Hero Log →</button></td>
+    </tr>`).join('')}
+  </table>` : '<div style="padding:30px;text-align:center;color:var(--text-low);">No shipments match this cell for the current filters.</div>';
+  return `<div class="modal-head">
+      <div><div class="modal-title">${title}</div><div class="modal-sub">${sub}</div></div>
+      <div class="modal-actions">${backBtn}<button class="modal-close-x" id="modalCloseBtn">✕</button></div>
+    </div>
+    <div class="modal-body tbl-scroll">${body}</div>`;
+}
+
+function buildEventLog(r){
+  const rows = GRANULAR_EVENTS.map((ev,idx)=>({...ev, idx, status: ev.leg <= r.leg_index ? 'done' : 'pending'}));
+
+  // the last event of the current leg is "now" (dwell_min ago); earlier done events are pushed further back
+  const lastDoneIdx = rows.map((r2,i)=>r2.status==='done'?i:-1).filter(i=>i>=0).pop();
+  let runningAgo = r.dwell_min;
+  for(let i=rows.length-1;i>=0;i--){
+    const row = rows[i];
+    if(row.status==='pending'){ row.ago=null; continue; }
+    if(i===lastDoneIdx){ row.ago = runningAgo; continue; }
+    runningAgo += 12 + ((r.shipment_id + i*37) % 55);
+    row.ago = runningAgo;
+  }
+
+  const sid = r.shipment_id;
+  rows.forEach(row=>{
+    if(row.key==='picklist_assigned'){ row.opLabel='Assigned To'; row.operator=OPERATORS[sid%OPERATORS.length]; }
+    if(row.key==='picking_started'){ row.opLabel='Picker'; row.operator=OPERATORS[(sid+1)%OPERATORS.length]; row.locLabel='Bin / Rack'; row.location='Bin B-'+((sid%40)+1)+' / Rack R-'+((sid%12)+1); }
+    if(row.key==='picked'){ row.opLabel='Picker'; row.operator=OPERATORS[(sid+1)%OPERATORS.length]; }
+    if(row.key==='container_attached'){ row.locLabel='Container'; row.location=r.current_container; }
+    if(row.key==='packed'){ row.opLabel='Packer'; row.operator=OPERATORS[(sid+2)%OPERATORS.length]; row.locLabel='Station'; row.location='Pack Station PK-'+((sid%8)+1); }
+    if(row.key==='prepared'){ row.opLabel='Prepared By'; row.operator=OPERATORS[(sid+3)%OPERATORS.length]; }
+    if(row.key==='dispatched'){ row.locLabel='Dock'; row.location='Dock D-'+((sid%6)+1); }
+    if(row.key==='handover'){ row.opLabel='Handed Over By'; row.operator=OPERATORS[(sid+4)%OPERATORS.length]; row.locLabel='Carrier / Vehicle'; row.location=r.carrier+' · Vehicle #'+((sid%900)+100); }
+  });
+  return rows;
+}
+
+function heroModalHTML({shipmentId}){
+  const r = SHIPMENTS.find(s=>s.shipment_id===shipmentId);
+  if(!r) return '<div class="modal-body">Shipment not found.</div>';
+  const backBtn = modalStack.length>1 ? '<button class="btn small" id="modalBackBtn">← Back to list</button>' : '';
+  const eventRows = buildEventLog(r);
+
+  // compact 7-leg stepper for at-a-glance, using the first event of each leg for its timestamp
+  let tl = '<div class="timeline">';
+  LEGS.forEach((l,i)=>{
+    const legRows = eventRows.filter(e=>e.leg===i);
+    const cls = i<r.leg_index ? 'done' : (i===r.leg_index ? 'current' : 'pending');
+    const anyAgo = legRows.find(e=>e.ago!=null);
+    const ts = anyAgo ? agoLabel(anyAgo.ago) : '—';
+    tl += `<div class="tl-step ${cls}"><div class="line"></div><div class="node"></div><div class="label">${l.label}</div><div class="ts">${ts}</div></div>`;
+  });
+  tl += '</div>';
+
+  const eventLogTable = `<table>
+    <tr><th>Event</th><th>When</th><th>Operator</th><th>Location / Reference</th><th>Status</th></tr>
+    ${eventRows.map(ev=>{
+      const ts = ev.ago!=null ? agoLabel(ev.ago) : '—';
+      const op = ev.operator ? (ev.opLabel+': '+ev.operator) : '—';
+      const loc = ev.location ? (ev.locLabel+': '+ev.location) : '—';
+      const badge = ev.status==='done' ? statusBadge('clear','DONE') : statusBadge('stuck','PENDING');
+      return `<tr><td>${ev.label}</td><td class="mono">${ts}</td><td>${op}</td><td>${loc}</td><td>${badge}</td></tr>`;
+    }).join('')}
+  </table>`;
+
+  const raw = `<div class="rawgrid">
+    <div class="rawfield"><div class="k">Order ID</div><div class="v">${r.order_id}</div></div>
+    <div class="rawfield"><div class="k">Shipment ID</div><div class="v">${r.shipment_id}</div></div>
+    <div class="rawfield"><div class="k">Master Shipment ID</div><div class="v">${r.master_shipment_id||'—'}</div></div>
+    <div class="rawfield"><div class="k">SKU</div><div class="v">${r.sku}</div></div>
+    <div class="rawfield"><div class="k">Item Code (Barcode)</div><div class="v">${r.barcode}</div></div>
+    <div class="rawfield"><div class="k">Title</div><div class="v" style="font-size:11px;">${r.title}</div></div>
+    <div class="rawfield"><div class="k">Units</div><div class="v">${r.units}</div></div>
+    <div class="rawfield"><div class="k">Current Container</div><div class="v">${r.current_container}</div></div>
+    <div class="rawfield"><div class="k">Crate / Picklist</div><div class="v">${r.crate_id} / ${r.picklist_id}</div></div>
+    <div class="rawfield"><div class="k">Site</div><div class="v">${r.siteName} (${r.site})</div></div>
+    <div class="rawfield"><div class="k">Carrier</div><div class="v">${r.carrier}</div></div>
+    <div class="rawfield"><div class="k">${r.is_retailer?'SLA':'Cutoff Wave'}</div><div class="v">${r.is_retailer?'48h flat dwell':(r.waveTime+' — '+r.waveLabel)}</div></div>
+    <div class="rawfield"><div class="k">Pickup Confirmed</div><div class="v">${r.pickup_confirmed?'Yes':'No'}</div></div>
+    ${r.early_minutes!=null ? `<div class="rawfield"><div class="k">Early Handover</div><div class="v" style="color:var(--status-clear);">${(r.early_minutes/60).toFixed(2)}h ahead of cutoff</div></div>` : ''}
+  </div>`;
+
+  const stuckVerifiedBlock = r.stuck_verified_reason ? `<div class="rca-inline" style="border-color:var(--status-wip);margin-bottom:14px;">
+      <div class="title" style="color:var(--status-wip);">⚠ Stuck at Verification — Diagnostic Reason</div>
+      <div style="font-size:12px;color:var(--text-hi);">${r.stuck_verified_reason}</div>
+    </div>` : '';
+
+  const rcaBlock = r.status==='breach' ? `<div class="rca-inline">
+      <div class="title">RCA Capture — required for breached shipments</div>
+      <div class="rca-row">
+        <select class="select rca-bucket-select" id="mbucket-${r.shipment_id}" data-sid="${r.shipment_id}">
+          <option value="">Bucket…</option>
+          <option ${r.rca_bucket==='FC Controllable'?'selected':''}>FC Controllable</option>
+          <option ${r.rca_bucket==='FC Non-Controllable'?'selected':''}>FC Non-Controllable</option>
+        </select>
+        <select class="select" id="mreason-${r.shipment_id}">
+          <option value="">Sub-reason…</option>
+          ${r.rca_bucket ? RCA_TAXONOMY[r.rca_bucket].map(o=>'<option '+(o===r.rca_subreason?'selected':'')+'>'+o+'</option>').join('') : ''}
+        </select>
+        <button class="btn primary" id="mrca-save-${r.shipment_id}">Save RCA</button>
+        ${r.rca_bucket ? '<span class="badge b-clear">Captured</span>' : '<span class="badge b-breach">Pending</span>'}
+      </div></div>` : '';
+
+  return `<div class="modal-head">
+      <div><div class="modal-title">Hero Log — Order ${r.order_id} / Shipment ${r.shipment_id}</div><div class="modal-sub">${r.site} · ${r.carrier} · ${r.fulfillment_type}${r.is_retailer?' · RETAILER':''}</div></div>
+      <div class="modal-actions">${backBtn}<button class="modal-close-x" id="modalCloseBtn">✕</button></div>
+    </div>
+    <div class="modal-body">${tl}
+      <div class="kicker" style="margin:14px 0 6px;">DETAILED EVENT LOG — ORDER CREATION TO HANDOVER</div>
+      ${eventLogTable}
+      <div style="margin-top:16px;">${raw}</div>
+      ${stuckVerifiedBlock}
+      ${rcaBlock}
+    </div>`;
+}
+
+function wireModalEvents(top){
+  const closeBtn = document.getElementById('modalCloseBtn');
+  if(closeBtn) closeBtn.addEventListener('click', closeAllModals);
+  const backBtn = document.getElementById('modalBackBtn');
+  if(backBtn) backBtn.addEventListener('click', popModal);
+  if(top.type==='list'){
+    document.querySelectorAll('.hero-open-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=> pushModal('hero', {shipmentId: parseInt(btn.dataset.sid)}));
+    });
+  } else {
+    const sel = document.querySelector('.rca-bucket-select');
+    if(sel){
+      sel.addEventListener('change', ()=>{
+        const sid = sel.dataset.sid;
+        const reasonSel = document.getElementById('mreason-'+sid);
+        const opts = RCA_TAXONOMY[sel.value]||[];
+        reasonSel.innerHTML = '<option value="">Sub-reason…</option>'+opts.map(o=>'<option>'+o+'</option>').join('');
+      });
+      const saveBtn = document.getElementById('mrca-save-'+sel.dataset.sid);
+      saveBtn.addEventListener('click', ()=>{
+        const sid = parseInt(sel.dataset.sid);
+        const reasonSel = document.getElementById('mreason-'+sid);
+        const rec = SHIPMENTS.find(s=>s.shipment_id===sid);
+        if(rec && sel.value && reasonSel.value){ rec.rca_bucket = sel.value; rec.rca_subreason = reasonSel.value; renderModalTop(); renderAll(); }
+      });
+    }
+  }
+}
+function openListModal(rows, title, sub){ modalStack.length=0; pushModal('list', {title, sub, rows}); }
+
+/* =====================================================================
+   NETWORK SUMMARY
+===================================================================== */
+function renderOverview(){
+  document.getElementById('ov-lens-tag').textContent = state.mode==='RETAILER' ? 'RETAILER · 48H SLA' : (state.lens==='CUTOFF' ? 'CUTOFF VIEW' : 'DWELL VIEW');
+  const all = filteredShipments({respectSite:false});
+  const cBreach = all.filter(s=>s.status==='breach').length;
+  const cWip = all.filter(s=>s.status==='wip').length;
+  const cClear = all.filter(s=>s.status==='clear').length;
+  const cStuck = all.filter(s=>s.status==='stuck').length;
+  const cPickupPending = all.filter(s=>s.leg_index>=5 && !s.pickup_confirmed).length;
+
+  document.getElementById('networkStats').innerHTML = `
+    <div class="statcard"><div class="n mono">${all.length}</div><div class="l">Total shipments (network)</div></div>
+    <div class="statcard c-breach"><div class="n">${cBreach}</div><div class="l">Handover breached</div></div>
+    <div class="statcard c-wip"><div class="n">${cWip}</div><div class="l">Work in progress</div></div>
+    <div class="statcard c-clear"><div class="n">${cClear}</div><div class="l">Cleared / handed over</div></div>
+    <div class="statcard c-stuck"><div class="n">${cStuck}</div><div class="l">Stuck (no scan movement)</div></div>
+    <div class="statcard c-proposed"><div class="n">${cPickupPending}</div><div class="l">Pickup pending <span style="opacity:.7">(proposed tier)</span></div></div>`;
+
+  let thead = '<tr><th>Site</th><th>Type</th><th>Total</th><th>Breached</th><th>WIP</th><th>Cleared</th><th>Stuck</th><th>Early Handover</th><th>Breach %</th><th>Status</th></tr>';
+  function rowFor(siteCode, siteObj){
+    const rows = all.filter(s=> siteCode==='ALL' ? true : s.site===siteCode);
+    const total = rows.length||1;
+    const brc = rows.filter(r=>r.status==='breach').length;
+    const wip = rows.filter(r=>r.status==='wip').length;
+    const clr = rows.filter(r=>r.status==='clear').length;
+    const stk = rows.filter(r=>r.status==='stuck').length;
+    const earlyRows = rows.filter(r=>r.early_minutes!=null);
+    const earlyAvgHrs = earlyRows.length ? (earlyRows.reduce((a,r)=>a+r.early_minutes,0)/earlyRows.length/60) : 0;
+    const earlyCell = earlyRows.length ? `${earlyRows.length} <span style="color:var(--text-mid);">(${earlyAvgHrs.toFixed(1)}h avg)</span>` : '—';
+    const pct = ((brc/total)*100).toFixed(2);
+    const badge = pct>3 ? statusBadge('breach','AT RISK') : pct>1 ? statusBadge('wip','MONITOR') : statusBadge('clear','HEALTHY');
+    return `<tr data-siterow="${siteCode}"><td>${siteObj?siteObj.code:'ALL NETWORK'}</td><td>${siteObj?siteObj.type:'—'}</td><td class="mono">${rows.length}</td>
+      <td class="mono" style="color:var(--status-breach)">${brc}</td><td class="mono" style="color:var(--status-wip)">${wip}</td>
+      <td class="mono" style="color:var(--status-clear)">${clr}</td><td class="mono" style="color:var(--status-stuck)">${stk}</td>
+      <td class="mono" style="color:var(--status-clear)">${earlyCell}</td>
+      <td class="mono">${pct}%</td><td>${badge}</td></tr>`;
+  }
+  let body = rowFor('ALL', null).replace('<tr ', '<tr class="row-all" ');
+  SITES.forEach(s=> body += rowFor(s.code, s));
+  document.getElementById('overviewTable').innerHTML = thead + body;
+  document.querySelectorAll('#overviewTable tr[data-siterow]').forEach(tr=>{
+    if(tr.dataset.siterow==='ALL') return;
+    tr.style.cursor='pointer';
+    tr.addEventListener('click', ()=> goToSite(tr.dataset.siterow));
+  });
+
+  const rollup = {};
+  SHIPMENTS.filter(s=>s.status==='breach' && s.rca_bucket && !!s.is_retailer===(state.mode==='RETAILER')).forEach(r=>{
+    rollup[r.rca_bucket]=rollup[r.rca_bucket]||{}; rollup[r.rca_bucket][r.rca_subreason]=(rollup[r.rca_bucket][r.rca_subreason]||0)+1;
+  });
+  let rr = '<tr><th>Bucket</th><th>Sub-reason</th><th>Count</th></tr>';
+  let any=false;
+  Object.keys(rollup).forEach(b=>Object.keys(rollup[b]).forEach(sr=>{ any=true; rr+=`<tr><td>${b}</td><td>${sr}</td><td class="mono">${rollup[b][sr]}</td></tr>`; }));
+  if(!any) rr += '<tr><td colspan="3" style="text-align:center;color:var(--text-low);padding:16px;">No RCA captured yet in this session — tag a few breaches from any Hero Log window, then revisit.</td></tr>';
+  document.getElementById('networkRcaTable').innerHTML = rr;
+
+  renderPendencyTable(all);
+  renderRiskHeatmap(all);
+}
+
+function renderPendencyTable(all){
+  let thead = '<tr><th>Site</th><th>Type</th><th>Orders Pending</th><th>Units Pending</th><th>Yet-to-Process (Days)</th><th>In-Process (Days)</th><th>Total Pendency (Days)</th><th>Daily Capacity (Units)</th></tr>';
+  function daysCell(d){
+    const color = d>2 ? 'var(--status-breach)' : d>1 ? 'var(--status-wip)' : 'var(--status-clear)';
+    return `<td class="mono" style="color:${color};font-weight:600;">${d.toFixed(2)}</td>`;
+  }
+  function rowFor(siteCode, siteObj){
+    if(siteCode==='ALL'){
+      const cap = SITES.reduce((a,s)=>a+s.cap,0);
+      let orders=0, units=0, yetUnits=0, inprocUnits=0;
+      SITES.forEach(s=>{ const p=SITE_PENDENCY[s.code]; orders+=p.totalOrders; units+=p.totalUnits; yetUnits+=p.yetUnits; inprocUnits+=p.inprocUnits; });
+      return `<tr data-siterow2="ALL"><td>ALL NETWORK</td><td>—</td>
+        <td class="mono">${orders.toLocaleString()}</td><td class="mono">${units.toLocaleString()}</td>
+        ${daysCell(yetUnits/cap)}${daysCell(inprocUnits/cap)}${daysCell(units/cap)}
+        <td class="mono">${cap.toLocaleString()}</td></tr>`;
+    }
+    const p = SITE_PENDENCY[siteCode];
+    return `<tr data-siterow2="${siteCode}"><td>${siteObj.code}</td><td>${siteObj.type}</td>
+      <td class="mono">${p.totalOrders.toLocaleString()}</td><td class="mono">${p.totalUnits.toLocaleString()}</td>
+      ${daysCell(p.yetDays)}${daysCell(p.inprocDays)}${daysCell(p.totalDays)}
+      <td class="mono">${siteObj.cap.toLocaleString()}</td></tr>`;
+  }
+  let body = rowFor('ALL', null).replace('<tr ', '<tr class="row-all" ');
+  SITES.forEach(s=> body += rowFor(s.code, s));
+  document.getElementById('pendencyTable').innerHTML = thead+body;
+  document.querySelectorAll('#pendencyTable tr[data-siterow2]').forEach(tr=>{
+    if(tr.dataset.siterow2==='ALL') return;
+    tr.style.cursor='pointer';
+    tr.addEventListener('click', ()=> goToSite(tr.dataset.siterow2));
+  });
+}
+
+function hexToRgb(hex){ hex=hex.replace('#',''); return [parseInt(hex.substring(0,2),16),parseInt(hex.substring(2,4),16),parseInt(hex.substring(4,6),16)]; }
+function rgbToHex(r,g,b){ return '#'+[r,g,b].map(x=>Math.round(x).toString(16).padStart(2,'0')).join(''); }
+function heatColor(score){
+  const stops = [[0,'#2461a8'],[25,'#2e9e6b'],[50,'#e8c547'],[75,'#e0752f'],[100,'#c62828']];
+  score = Math.max(0, Math.min(100, score));
+  for(let i=0;i<stops.length-1;i++){
+    const [s0,c0]=stops[i], [s1,c1]=stops[i+1];
+    if(score>=s0 && score<=s1){
+      const t=(score-s0)/(s1-s0), a=hexToRgb(c0), b=hexToRgb(c1);
+      return rgbToHex(a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t);
+    }
+  }
+  return stops[stops.length-1][1];
+}
+function renderRiskHeatmap(all){
+  let html = '<div class="heatgrid">';
+  SITES.forEach(site=>{
+    const rows = all.filter(s=>s.site===site.code);
+    const total = rows.length||1;
+    const brc = rows.filter(r=>r.status==='breach').length;
+    const breachPct = (brc/total)*100;
+    const daysPend = SITE_PENDENCY[site.code].totalDays;
+    const score = Math.min(50, breachPct*2) + Math.min(50, daysPend*17);
+    const color = heatColor(score);
+    html += `<div class="heat-tile" style="background:${color};" data-siterow3="${site.code}" title="${site.name} — breach ${breachPct.toFixed(1)}%, pendency ${daysPend.toFixed(2)}d">
+      <div class="code">${site.code}</div><div class="name">${site.name}</div>
+      <div class="score">${score.toFixed(0)}</div><div class="score-l">risk score</div>
+    </div>`;
+  });
+  html += '</div><div class="heat-legend"><span>Cooler / lower risk</span><span class="bar"></span><span>Hotter / higher risk</span></div>';
+  document.getElementById('riskHeatmap').innerHTML = html;
+  document.querySelectorAll('[data-siterow3]').forEach(tile=>{
+    tile.addEventListener('click', ()=> goToSite(tile.dataset.siterow3));
+  });
+}
+
+/* =====================================================================
+   LOAD BALANCER
+===================================================================== */
+function renderLoadBalancer(){
+  let totalFall=0, totalProc=0;
+  SITES.forEach(site=>{ HOURLY_LOAD[site.code].hours.forEach(h=>{ totalFall+=h.fallUnits; totalProc+=h.procUnits; }); });
+  const netDiff = totalFall-totalProc;
+  document.getElementById('lbStats').innerHTML = `
+    <div class="statcard"><div class="n mono">${totalFall.toLocaleString()}</div><div class="l">Network order fall (units, today)</div></div>
+    <div class="statcard"><div class="n mono">${totalProc.toLocaleString()}</div><div class="l">Network processed (units, today)</div></div>
+    <div class="statcard ${netDiff>0?'c-breach':'c-clear'}"><div class="n">${netDiff>0?'+':''}${netDiff.toLocaleString()}</div><div class="l">Net accumulation (units)</div></div>
+    <div class="statcard"><div class="n mono">${SITES.filter(s=>s.closed.length>0).length}</div><div class="l">Sites with restricted hours</div></div>
+    <div class="statcard c-breach"><div class="n">${SITES.filter(s=>{const h=HOURLY_LOAD[s.code].hours; return h[h.length-1].pendencyDays>1;}).length}</div><div class="l">Sites &gt;1 day pendency by hour 23</div></div>
+    <div class="statcard c-wip"><div class="n">${SITES.filter(s=>HOURLY_LOAD[s.code].overloadFactor>1).length}</div><div class="l">Sites trending over capacity</div></div>`;
+
+  let thead = '<tr><th>Site</th><th>Metric</th>';
+  for(let h=0; h<24; h++) thead += `<th>${String(h).padStart(2,'0')}:00</th>`;
+  thead += '</tr>';
+
+  let body = '';
+  SITES.forEach(site=>{
+    const data = HOURLY_LOAD[site.code];
+    body += `<tr><td class="lb-sitehead" colspan="26">${site.code} · ${site.name} — Daily Capacity ${site.cap.toLocaleString()} units${site.closed.length?(' · closed hours: '+site.closed.map(h=>String(h).padStart(2,'0')+':00').join(', ')):' · 24×7 operation'}</td></tr>`;
+
+    const metricRow = (label, key, colorFn) => {
+      let row = `<tr><td class="lb-legcell">${site.code}</td><td class="legcell" style="font-size:10.5px;">${label}</td>`;
+      data.hours.forEach(h=>{
+        if(h.isClosed){ row += '<td class="lb-closed">CLOSED</td>'; return; }
+        const v = h[key];
+        const color = colorFn ? colorFn(v,h) : 'var(--text-hi)';
+        row += `<td class="mono" style="color:${color};">${typeof v==='number' && key==='pendencyDays' ? v.toFixed(2) : v.toLocaleString()}</td>`;
+      });
+      row += '</tr>';
+      return row;
+    };
+
+    body += metricRow('Hourly Order Fall (units)', 'fallUnits');
+    body += metricRow('Hourly Order Processed (units)', 'procUnits');
+    body += metricRow('Difference (Fall − Processed)', 'diff', (v)=> v>0?'var(--status-breach)':(v<0?'var(--status-clear)':'var(--text-mid)'));
+    body += metricRow('Pendency (Days, cumulative)', 'pendencyDays', (v)=> v>2?'var(--status-breach)':(v>1?'var(--status-wip)':'var(--status-clear)'));
+  });
+
+  document.getElementById('loadBalancerTable').innerHTML = thead+body;
+}
+
+/* =====================================================================
+   CUTOFF PADDING (Order Cutoff -> Handover Cutoff)
+===================================================================== */
+function paddingBadge(mins){
+  if(mins<120) return statusBadge('breach','HIGH RISK');
+  if(mins<180) return statusBadge('wip','MODERATE');
+  return statusBadge('clear','HEALTHY');
+}
+function paddingColorVar(mins){
+  return mins<120 ? '--status-breach' : mins<180 ? '--status-wip' : '--status-clear';
+}
+function renderPaddingInsights(){
+  const allHubs = CUTOFF_MASTER;
+  const totalVolume = allHubs.reduce((a,h)=>a+h.volume,0) || 1;
+  const networkWeightedAvg = allHubs.reduce((a,h)=>a+h.paddingMin*h.volume,0)/totalVolume;
+  const highRiskHubs = allHubs.filter(h=>h.paddingMin<120).length;
+  let tightestSite=null, tightestVal=Infinity;
+  SITES.forEach(s=>{ const p=PADDING_SUMMARY[s.code]; if(p.weightedAvgPaddingMin<tightestVal){ tightestVal=p.weightedAvgPaddingMin; tightestSite=s; } });
+  const healthySites = SITES.filter(s=>PADDING_SUMMARY[s.code].weightedAvgPaddingMin>=180).length;
+
+  document.getElementById('paddingStats').innerHTML = `
+    <div class="statcard"><div class="n mono">${(networkWeightedAvg/60).toFixed(2)}h</div><div class="l">Network weighted avg padding</div></div>
+    <div class="statcard c-breach"><div class="n">${highRiskHubs}</div><div class="l">Hubs with &lt;2h padding</div></div>
+    <div class="statcard"><div class="n mono">${allHubs.length}</div><div class="l">Total hub × partner combinations</div></div>
+    <div class="statcard"><div class="n mono">${totalVolume.toLocaleString()}</div><div class="l">Network daily volume (orders)</div></div>
+    <div class="statcard c-breach"><div class="n">${tightestSite?tightestSite.code:'—'}</div><div class="l">Tightest site (lowest avg padding)</div></div>
+    <div class="statcard c-clear"><div class="n">${healthySites}</div><div class="l">Sites healthy (&gt;3h avg padding)</div></div>`;
+
+  let thead = '<tr><th>Site</th><th>Type</th><th>Hubs</th><th>Daily Volume</th><th>Weighted Avg Padding</th><th>Min Padding</th><th>Max Padding</th><th>Risk</th></tr>';
+  let body = '';
+  SITES.forEach(s=>{
+    const p = PADDING_SUMMARY[s.code];
+    const pct = Math.max(4, Math.min(100, (p.weightedAvgPaddingMin/360)*100));
+    body += `<tr data-siterow4="${s.code}"><td>${s.code}</td><td>${s.type}</td><td class="mono">${p.hubCount}</td><td class="mono">${p.totalVolume.toLocaleString()}</td>
+      <td><div class="padcell"><span class="val">${(p.weightedAvgPaddingMin/60).toFixed(2)}h</span><div class="padbar"><i style="width:${pct}%;background:var(${paddingColorVar(p.weightedAvgPaddingMin)})"></i></div></div></td>
+      <td class="mono">${(p.minPaddingMin/60).toFixed(2)}h</td><td class="mono">${(p.maxPaddingMin/60).toFixed(2)}h</td>
+      <td>${paddingBadge(p.weightedAvgPaddingMin)}</td></tr>`;
+  });
+  document.getElementById('paddingSummaryTable').innerHTML = thead+body;
+  document.querySelectorAll('#paddingSummaryTable tr[data-siterow4]').forEach(tr=>{
+    tr.style.cursor='pointer';
+    tr.addEventListener('click', ()=> goToSite(tr.dataset.siterow4));
+  });
+
+  const rawRows = CUTOFF_MASTER.filter(c=> state.site==='ALL' ? true : c.site===state.site);
+  let rthead = '<tr><th>Site</th><th>Hub ID</th><th>Partner</th><th>Fulfillment</th><th>Order Cutoff</th><th>Handover Cutoff</th><th>Padding</th><th>Volume (orders/day)</th></tr>';
+  let rbody = rawRows.map(h=>`<tr><td>${h.site}</td><td class="mono">${h.hub}</td><td>${h.carrier}</td><td>${h.ful}</td>
+      <td class="mono">${h.orderCutoff}</td><td class="mono">${h.cutoff}</td>
+      <td class="mono" style="color:var(${paddingColorVar(h.paddingMin)});font-weight:700;">${(h.paddingMin/60).toFixed(2)}h</td>
+      <td class="mono">${h.volume.toLocaleString()}</td></tr>`).join('');
+  if(!rawRows.length) rbody = '<tr><td colspan="8" style="text-align:center;color:var(--text-low);padding:16px;">No hubs configured for this site.</td></tr>';
+  document.getElementById('paddingRawTable').innerHTML = rthead+rbody;
+}
+
+/* =====================================================================
+   MARKETPLACE (EASYECOM) & D2C CHANNEL CPTs
+===================================================================== */
+function renderChannelCPT(data, channels, ids){
+  const totalVolume = data.reduce((a,d)=>a+d.dailyVolume,0) || 1;
+  const totalBreached = data.reduce((a,d)=>a+d.breached,0);
+  const totalPending = data.reduce((a,d)=>a+d.pending,0);
+  const atRiskCombos = data.filter(d=>d.breached>0).length;
+
+  document.getElementById(ids.stats).innerHTML = `
+    <div class="statcard"><div class="n mono">${totalVolume.toLocaleString()}</div><div class="l">Network daily volume (orders)</div></div>
+    <div class="statcard c-breach"><div class="n">${totalBreached.toLocaleString()}</div><div class="l">Breached (missed pickup cutoff)</div></div>
+    <div class="statcard c-wip"><div class="n">${totalPending.toLocaleString()}</div><div class="l">Pending pickup / handover</div></div>
+    <div class="statcard"><div class="n mono">${((totalBreached/totalVolume)*100).toFixed(2)}%</div><div class="l">Network breach %</div></div>
+    <div class="statcard c-breach"><div class="n">${atRiskCombos}</div><div class="l">Site × channel combos at risk</div></div>
+    <div class="statcard"><div class="n mono">${channels.length}</div><div class="l">Channels tracked</div></div>`;
+
+  let cthead = '<tr><th>Channel</th><th>Handover / Pickup Cutoff</th><th>Total Volume</th><th>Breached</th><th>Breach %</th><th>Status</th></tr>';
+  let cbody = channels.map(ch=>{
+    const rows = data.filter(d=>d.channelId===ch.id);
+    const vol = rows.reduce((a,r)=>a+r.dailyVolume,0)||1;
+    const brc = rows.reduce((a,r)=>a+r.breached,0);
+    const pct = (brc/vol*100);
+    const badge = pct>3 ? statusBadge('breach','AT RISK') : pct>0.5 ? statusBadge('wip','MONITOR') : statusBadge('clear','HEALTHY');
+    return `<tr><td>${ch.name}</td><td class="mono">${ch.cutoff}</td><td class="mono">${vol.toLocaleString()}</td><td class="mono" style="color:var(--status-breach)">${brc.toLocaleString()}</td><td class="mono">${pct.toFixed(2)}%</td><td>${badge}</td></tr>`;
+  }).join('');
+  document.getElementById(ids.channelTable).innerHTML = cthead+cbody;
+
+  const rawRows = data.filter(d=> state.site==='ALL' ? true : d.site===state.site);
+  let rthead = '<tr><th>Site</th><th>Channel</th><th>Order Cutoff</th><th>Handover / Pickup Cutoff</th><th>Daily Volume</th><th>Pending</th><th>Breached</th><th>Status</th></tr>';
+  let rbody = rawRows.map(d=>{
+    const pct = d.dailyVolume ? (d.breached/d.dailyVolume*100) : 0;
+    const badge = d.breached>0 ? statusBadge('breach','BREACHED') : d.isPast ? statusBadge('clear','CLEARED') : statusBadge('wip','WIP');
+    return `<tr><td>${d.site}</td><td>${d.channel}</td><td class="mono">${d.orderCutoff}</td><td class="mono">${d.cutoff}${d.isPast?' · PASSED':''}</td>
+      <td class="mono">${d.dailyVolume.toLocaleString()}</td><td class="mono" style="color:var(--status-wip)">${d.pending.toLocaleString()}</td>
+      <td class="mono" style="color:var(--status-breach)">${d.breached.toLocaleString()}</td><td>${badge}</td></tr>`;
+  }).join('');
+  if(!rawRows.length) rbody = '<tr><td colspan="8" style="text-align:center;color:var(--text-low);padding:16px;">No channel data for this site.</td></tr>';
+  document.getElementById(ids.rawTable).innerHTML = rthead+rbody;
+}
+function renderEasyEcom(){ renderChannelCPT(EASYECOM_DATA, EASYECOM_PLATFORMS, {stats:'easyecomStats', channelTable:'easyecomPlatformTable', rawTable:'easyecomRawTable'}); }
+function renderD2C(){ renderChannelCPT(D2C_DATA, D2C_CHANNELS, {stats:'d2cStats', channelTable:'d2cChannelTable', rawTable:'d2cRawTable'}); }
+
+/* =====================================================================
+   SITE RODEO GRID
+===================================================================== */
+function renderGrid(){
+  const isRetailer = state.mode==='RETAILER';
+  document.getElementById('grid-lens-tag').textContent = isRetailer ? 'RETAILER · 48H DWELL SLA' : (state.lens==='CUTOFF' ? 'CUTOFF VIEW' : 'DWELL VIEW');
+  const el = document.getElementById('gridGate');
+  if(state.site==='ALL'){
+    document.getElementById('grid-title').textContent = 'Site RODEO Grid';
+    document.getElementById('grid-desc').textContent = 'Select a site from the dropdown above to open its leg-by-leg grid.';
+    el.innerHTML = '<div class="panel"><div class="gate"><div class="big">▤</div>Select a site from the top-left dropdown to open its RODEO grid.</div></div>';
+    return;
+  }
+  const site = SITES.find(s=>s.code===state.site);
+  document.getElementById('grid-title').textContent = site.name+' ('+site.code+') — '+(isRetailer?'Retailer Shipments':'RODEO Grid');
+  document.getElementById('grid-desc').textContent = isRetailer
+    ? "Retailer shipments carry no carrier cutoff — rows are process legs, columns are dwell time against the flat 48-hour SLA. Anything past 48h is a breach."
+    : (state.lens==='CUTOFF'
+      ? "Rows are process legs, columns are this site's live cutoff waves. Click any number to see the shipments behind it."
+      : "Rows are process legs, columns are dwell time in the current stage. Click any number to see the shipments behind it.");
+
+  const rows = filteredShipments();
+  const waves = isRetailer ? null : CUTOFF_WAVES_BY_SITE[state.site];
+  const columns = isRetailer ? RETAILER_DWELL_BUCKETS : (state.lens==='CUTOFF' ? waves : DWELL_BUCKETS);
+  const mergeHandover = isRetailer || state.lens==='DWELL';
+
+  let thead = '<tr><th>Process Leg</th>';
+  columns.forEach((c)=>{
+    if(isRetailer){
+      thead += `<th class="colhead"><span class="t">${c.label}</span><span class="s ${c.key==='r48p'?'past':'future'}">retailer dwell</span></th>`;
+    } else if(state.lens==='CUTOFF'){
+      thead += `<th class="colhead"><span class="t">${c.time}</span><span class="s ${c.isPast?'past':'future'}">${c.label}${c.isPast?' · CUTOFF PASSED':' · UPCOMING'}</span></th>`;
+    } else {
+      thead += `<th class="colhead"><span class="t">${c.label}</span><span class="s">dwell in stage</span></th>`;
+    }
+  });
+  thead += '<th>Row Total</th></tr>';
+
+  function bucketKeyMatches(r, ci, c){
+    if(isRetailer) return retailerBucketOf(r.dwell_min)===c.key;
+    if(state.lens==='CUTOFF') return r.waveIndex===ci;
+    return dwellBucketOf(r.dwell_min)===c.key;
+  }
+
+  let body = '';
+  LEGS.forEach((leg, legIdx)=>{
+    body += `<tr><td class="legcell">${leg.label}</td>`;
+    let rowTotal = 0;
+    columns.forEach((c,ci)=>{
+      let list;
+      if(leg.key==='handover'){
+        if(mergeHandover){
+          if(ci===0){
+            const n = rows.filter(r=>r.leg_index===legIdx).length;
+            rowTotal += n;
+            body += `<td colspan="${columns.length}"><button class="cell-btn merged z-clear" data-mode="handoverAll">${n}<span class="sub">CLEARED</span></button></td>`;
+          }
+          return;
+        }
+        list = rows.filter(r=>r.leg_index===legIdx && bucketKeyMatches(r,ci,c));
+      } else {
+        list = rows.filter(r=>r.leg_index===legIdx && bucketKeyMatches(r,ci,c));
+      }
+      const n = list.length; rowTotal += n;
+      const stuckN = list.filter(r=>r.status==='stuck').length;
+      let cls = 'z-empty';
+      if(n>0){
+        if(leg.key==='handover') cls='z-clear';
+        else if(isRetailer) cls = c.key==='r48p' ? 'z-breach' : 'z-wip';
+        else if(state.lens==='CUTOFF') cls = c.isPast ? 'z-breach' : 'z-wip';
+        else cls = (c.key==='b8_12'||c.key==='b12p') ? 'z-breach' : 'z-wip';
+      }
+      body += `<td><button class="cell-btn ${cls}" data-leg="${legIdx}" data-col="${ci}">${n||'–'}${stuckN?('<span class="sub">'+stuckN+' stuck</span>'):''}</button></td>`;
+    });
+    body += `<td class="mono">${rowTotal}</td></tr>`;
+  });
+
+  const statPanel = renderGridStats(rows);
+  const pickupPanel = isRetailer
+    ? `<div class="panel"><div class="panel-head"><span class="panel-title">PARTNER PICKUP CONFIRMATION</span></div><div class="panel-body" style="color:var(--text-mid);font-size:12px;">Not applicable for retailer shipments — they follow the flat 48-hour dwell SLA above rather than a carrier cutoff, so there is no per-wave pickup compliance to track here.</div></div>`
+    : renderPartnerPickup(rows, waves);
+
+  el.innerHTML = `
+    ${statPanel}
+    <div class="panel">
+      <div class="panel-head"><span class="panel-title">LEG × ${isRetailer?'DWELL (48H SLA)':(state.lens==='CUTOFF'?'CUTOFF WAVE':'DWELL TIME')} MATRIX</span><span class="kicker">click any number to open the shipment list</span></div>
+      <div class="panel-body grid-wrap"><table class="rodeo-table">${thead}${body}</table></div>
+    </div>
+    ${pickupPanel}
+  `;
+
+  document.querySelectorAll('.cell-btn[data-leg]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const legIdx = parseInt(btn.dataset.leg), ci = parseInt(btn.dataset.col);
+      const leg = LEGS[legIdx];
+      const c = columns[ci];
+      const list = rows.filter(r=>r.leg_index===legIdx && bucketKeyMatches(r,ci,c));
+      const subLabel = isRetailer ? ('Dwell '+c.label) : (state.lens==='CUTOFF' ? (c.time+' — '+c.label) : ('Dwell '+c.label));
+      openListModal(list, leg.label+' — '+site.code, subLabel+' · '+list.length+' shipments');
+    });
+  });
+  document.querySelectorAll('.cell-btn[data-mode="handoverAll"]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const list = rows.filter(r=>r.leg_index===6);
+      openListModal(list, 'Handover — '+site.code, 'Cleared · '+list.length+' shipments');
+    });
+  });
+
+  if(!isRetailer){
+    const dispatchedPlus = rows.filter(r=>r.leg_index>=5);
+    document.querySelectorAll('[data-pickup-carrier]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const carrier = btn.dataset.pickupCarrier;
+        const list = dispatchedPlus.filter(r=>r.carrier===carrier && !r.pickup_confirmed);
+        openListModal(list, 'Pickup Pending — '+carrier, site.code+' · '+list.length+' shipments awaiting carrier pickup');
+      });
+    });
+  }
+}
+
+function renderGridStats(rows){
+  const brc = rows.filter(r=>r.status==='breach').length;
+  const wip = rows.filter(r=>r.status==='wip').length;
+  const clr = rows.filter(r=>r.status==='clear').length;
+  const stk = rows.filter(r=>r.status==='stuck').length;
+  return `<div class="statrow">
+    <div class="statcard"><div class="n mono">${rows.length}</div><div class="l">Total shipments — site</div></div>
+    <div class="statcard c-breach"><div class="n">${brc}</div><div class="l">Breached</div></div>
+    <div class="statcard c-wip"><div class="n">${wip}</div><div class="l">Work in progress</div></div>
+    <div class="statcard c-clear"><div class="n">${clr}</div><div class="l">Cleared</div></div>
+    <div class="statcard c-stuck"><div class="n">${stk}</div><div class="l">Stuck</div></div>
+    <div class="statcard"><div class="n mono">${((brc/(rows.length||1))*100).toFixed(2)}%</div><div class="l">CPT breach %</div></div>
+  </div>`;
+}
+
+function renderPartnerPickup(rows, waves){
+  const dispatchedPlus = rows.filter(r=>r.leg_index>=5);
+  const carriers = [...new Set(dispatchedPlus.map(r=>r.carrier))];
+  let thead, body='';
+  if(state.lens==='CUTOFF'){
+    thead = '<tr><th>Partner</th><th>Applicable Cutoff</th><th>Assigned</th><th>Pickup Confirmed</th><th>Pickup Pending</th><th>Status</th></tr>';
+    carriers.forEach(carrier=>{
+      const group = dispatchedPlus.filter(r=>r.carrier===carrier);
+      const wave = waves.find(w=>w.carrier===carrier) || waves[0];
+      const confirmed = group.filter(r=>r.pickup_confirmed).length;
+      const pending = group.length-confirmed;
+      let status, pillClass;
+      if(pending===0){ status='ON-TIME'; pillClass='b-clear'; }
+      else if(wave.isPast){ status='BREACHED'; pillClass='b-breach'; }
+      else { status='PENDING'; pillClass='b-wip'; }
+      body += `<tr><td>${carrier}</td><td class="mono">${wave.time}${wave.isPast?' (passed)':''}</td><td class="mono">${group.length}</td>
+        <td class="mono" style="color:var(--status-clear)">${confirmed}</td>
+        <td><button class="cell-btn ${pending?'z-breach':'z-empty'}" style="display:inline;padding:2px 8px;" data-pickup-carrier="${carrier}">${pending}</button></td>
+        <td><span class="status-pill ${pillClass}">${status}</span></td></tr>`;
+    });
+  } else {
+    thead = '<tr><th>Partner</th><th>Assigned</th><th>Pickup Confirmed</th><th>Pickup Pending</th><th>Avg Dwell Since Dispatch</th><th>Status</th></tr>';
+    carriers.forEach(carrier=>{
+      const group = dispatchedPlus.filter(r=>r.carrier===carrier);
+      const confirmed = group.filter(r=>r.pickup_confirmed).length;
+      const pending = group.length-confirmed;
+      const avgDwell = group.length ? Math.round(group.reduce((a,r)=>a+r.dwell_min,0)/group.length) : 0;
+      let status, pillClass;
+      if(pending===0){ status='CLEAR'; pillClass='b-clear'; }
+      else if(avgDwell>480){ status='STUCK'; pillClass='b-stuck'; }
+      else { status='AGEING'; pillClass='b-wip'; }
+      body += `<tr><td>${carrier}</td><td class="mono">${group.length}</td>
+        <td class="mono" style="color:var(--status-clear)">${confirmed}</td>
+        <td><button class="cell-btn ${pending?'z-wip':'z-empty'}" style="display:inline;padding:2px 8px;" data-pickup-carrier="${carrier}">${pending}</button></td>
+        <td class="mono">${fmtMin(avgDwell)}</td><td><span class="status-pill ${pillClass}">${status}</span></td></tr>`;
+    });
+  }
+  if(!carriers.length) body = '<tr><td colspan="6" style="text-align:center;color:var(--text-low);padding:16px;">No shipments have reached Dispatched/Handover yet for the current filters.</td></tr>';
+
+  return `<div class="panel">
+    <div class="panel-head"><span class="panel-title">PARTNER PICKUP CONFIRMATION <span class="section-tag tag-proposed" style="margin-left:8px;">PROPOSED — NOT LIVE TODAY</span></span>
+    <span class="kicker">was the shipment physically picked up before this partner's cutoff?</span></div>
+    <div class="panel-body tbl-scroll"><table>${thead}${body}</table></div>
+  </div>`;
+}
+
+/* =====================================================================
+   HERO LOG SEARCH
+===================================================================== */
+document.getElementById('heroSearch').addEventListener('input', e=>{ state.heroSearch = e.target.value.trim().toLowerCase(); renderHero(); });
+document.getElementById('heroStatusFilter').addEventListener('change', e=>{ state.heroStatus = e.target.value; renderHero(); });
+function renderHero(){
+  let rows = filteredShipments();
+  if(state.heroStatus!=='ALL') rows = rows.filter(r=>r.status===state.heroStatus);
+  if(state.heroSearch){
+    const q = state.heroSearch;
+    rows = rows.filter(r=> String(r.order_id).includes(q) || String(r.shipment_id).includes(q) || r.crate_id.toLowerCase().includes(q) || r.sku.toLowerCase().includes(q));
+  }
+  document.getElementById('heroCount').textContent = rows.length + ' shipments';
+  let thead = '<tr><th>Order ID</th><th>Shipment ID</th><th>Site</th><th>SKU</th><th>Carrier</th><th>Current leg</th><th>Dwell</th><th>Status</th><th></th></tr>';
+  let body = rows.slice(0,300).map(r=>`<tr>
+      <td class="mono">${r.order_id}</td><td class="mono">${r.shipment_id}</td><td>${r.site}</td><td class="mono">${r.sku}</td><td>${r.carrier}</td>
+      <td>${LEGS[r.leg_index].label}</td><td class="mono">${fmtMin(r.dwell_min)}</td><td>${statusBadge(r.status)}</td>
+      <td><button class="btn small hero-search-open" data-sid="${r.shipment_id}">Hero Log →</button></td>
+    </tr>`).join('');
+  document.getElementById('heroTable').innerHTML = thead+body;
+  document.querySelectorAll('.hero-search-open').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ modalStack.length=0; pushModal('hero', {shipmentId: parseInt(btn.dataset.sid)}); });
+  });
+}
+
+/* =====================================================================
+   CUTOFF MASTER
+===================================================================== */
+function renderCutoffMaster(){
+  const note = document.getElementById('retailerCutoffNote');
+  const table = document.getElementById('cutoffTable');
+  if(state.mode==='RETAILER'){
+    note.classList.remove('hidden');
+    table.classList.add('hidden');
+    table.innerHTML = '';
+    return;
+  }
+  note.classList.add('hidden');
+  table.classList.remove('hidden');
+  const rows = CUTOFF_MASTER.filter(c=> state.site==='ALL' ? true : c.site===state.site);
+  let thead = '<tr><th>Site</th><th>Hub ID</th><th>Carrier</th><th>Fulfillment</th><th>Cutoff Wave</th><th>Effective From</th><th>Status</th></tr>';
+  let body = rows.map(r=>`<tr><td>${r.site}</td><td>${r.hub}</td><td>${r.carrier}</td><td>${r.ful}</td><td class="mono">${r.cutoff}</td><td class="mono">${r.eff}</td><td>${statusBadge('clear',r.status)}</td></tr>`).join('');
+  table.innerHTML = thead+body;
+}
+
+/* =====================================================================
+   RCA CAPTURE
+===================================================================== */
+function renderRCA(){
+  const el = document.getElementById('rcaGate');
+  if(state.site==='ALL'){
+    el.innerHTML = '<div class="panel"><div class="gate"><div class="big">◈</div>Select a specific site from the top filter bar to open its RCA capture queue.<br><span style="font-size:11px;">RCA is a site-level responsibility — this panel is intentionally gated.</span></div></div>';
+    return;
+  }
+  const rows = SHIPMENTS.filter(s=>s.site===state.site && s.status==='breach' && !!s.is_retailer===(state.mode==='RETAILER'));
+  const pending = rows.filter(r=>!r.rca_bucket);
+  const done = rows.filter(r=>r.rca_bucket);
+  let queue = pending.map(r=>`
+    <div class="rca-queue-item">
+      <div class="idcol"><div class="sid">${r.order_id} / ${r.shipment_id}</div><div class="meta">${r.carrier} · ${r.fulfillment_type} · stuck at ${LEGS[r.leg_index].label}</div></div>
+      <div>${statusBadge('breach')}</div>
+      <select class="select rca-bucket-select" id="q-bucket-${r.shipment_id}" data-sid="${r.shipment_id}"><option value="">Bucket…</option><option>FC Controllable</option><option>FC Non-Controllable</option></select>
+      <select class="select" id="q-reason-${r.shipment_id}"><option value="">Sub-reason…</option></select>
+      <span></span>
+      <button class="btn primary rca-submit-btn" data-sid="${r.shipment_id}">Save</button>
+    </div>`).join('');
+  if(!pending.length) queue = '<div style="padding:20px;color:var(--text-low);text-align:center;">No breached shipments awaiting RCA at this site. Nice.</div>';
+
+  const rollup = {};
+  done.forEach(r=>{ rollup[r.rca_bucket]=rollup[r.rca_bucket]||{}; rollup[r.rca_bucket][r.rca_subreason]=(rollup[r.rca_bucket][r.rca_subreason]||0)+1; });
+  let rollupRows = '';
+  Object.keys(rollup).forEach(b=>Object.keys(rollup[b]).forEach(sr=>{ rollupRows += `<tr><td>${b}</td><td>${sr}</td><td class="mono">${rollup[b][sr]}</td></tr>`; }));
+  if(!rollupRows) rollupRows = '<tr><td colspan="3" style="text-align:center;color:var(--text-low);padding:14px;">Captured RCAs roll up here — replacing the reply-all email thread.</td></tr>';
+
+  el.innerHTML = `
+    <div class="statrow" style="grid-template-columns:repeat(3,1fr);">
+      <div class="statcard c-breach"><div class="n">${rows.length}</div><div class="l">Breached shipments — ${state.site}</div></div>
+      <div class="statcard c-wip"><div class="n">${pending.length}</div><div class="l">RCA pending</div></div>
+      <div class="statcard c-clear"><div class="n">${done.length}</div><div class="l">RCA captured</div></div>
+    </div>
+    <div class="panel"><div class="panel-head"><span class="panel-title">BREACH QUEUE — ${state.site}</span><span class="kicker">standardized taxonomy · no free text</span></div><div class="panel-body" style="padding:0;">${queue}</div></div>
+    <div class="panel"><div class="panel-head"><span class="panel-title">SITE RCA ROLLUP — ${state.site}</span></div><div class="panel-body tbl-scroll"><table><tr><th>Bucket</th><th>Sub-reason</th><th>Count</th></tr>${rollupRows}</table></div></div>`;
+
+  document.querySelectorAll('.rca-bucket-select').forEach(sel=>{
+    sel.addEventListener('change', ()=>{
+      const sid = sel.dataset.sid;
+      const reasonSel = document.getElementById('q-reason-'+sid);
+      const opts = RCA_TAXONOMY[sel.value]||[];
+      if(reasonSel) reasonSel.innerHTML = '<option value="">Sub-reason…</option>'+opts.map(o=>'<option>'+o+'</option>').join('');
+    });
+  });
+  document.querySelectorAll('.rca-submit-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const sid = parseInt(btn.dataset.sid);
+      const bucketSel = document.getElementById('q-bucket-'+sid), reasonSel = document.getElementById('q-reason-'+sid);
+      const rec = SHIPMENTS.find(s=>s.shipment_id===sid);
+      if(rec && bucketSel.value && reasonSel.value){ rec.rca_bucket = bucketSel.value; rec.rca_subreason = reasonSel.value; renderRCA(); }
+    });
+  });
+}
+
+/* =====================================================================
+   DAILY SNAPSHOT
+===================================================================== */
+function renderSnapshot(){
+  const all = SHIPMENTS.filter(s=>!s.is_retailer);
+  const byFul = {};
+  ['NON-RTS','RTS'].forEach(f=>{
+    const rows = all.filter(s=>s.fulfillment_type===f);
+    const brc = rows.filter(s=>s.status==='breach').length;
+    byFul[f] = {total:rows.length, breach:brc, pct: rows.length? ((brc/rows.length)*100).toFixed(2):'0.00'};
+  });
+  const totalAll = all.length, totalBreach = all.filter(s=>s.status==='breach').length;
+  let siteRows = '';
+  SITES.forEach(s=>{
+    const rows = all.filter(r=>r.site===s.code);
+    const brc = rows.filter(r=>r.status==='breach').length;
+    const pct = rows.length ? (brc/rows.length*100) : 0;
+    siteRows += `<tr><td>${s.code}</td><td>${rows.length}</td><td>${brc}</td><td class="${pct>1.5?'snap-bad':'snap-good'}">${pct.toFixed(2)}%</td></tr>`;
+  });
+  const rcaCaptured = all.filter(s=>s.status==='breach' && s.rca_bucket);
+  const topReasons = {};
+  rcaCaptured.forEach(r=>{ topReasons[r.rca_subreason]=(topReasons[r.rca_subreason]||0)+1; });
+  const topList = Object.entries(topReasons).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+  const retAll = SHIPMENTS.filter(s=>s.is_retailer);
+  const retBreach = retAll.filter(s=>s.status==='breach').length;
+  const retPct = retAll.length ? (retBreach/retAll.length*100) : 0;
+  let retSiteRows = '';
+  SITES.forEach(s=>{
+    const rows = retAll.filter(r=>r.site===s.code);
+    const brc = rows.filter(r=>r.status==='breach').length;
+    const pct = rows.length ? (brc/rows.length*100) : 0;
+    retSiteRows += `<tr><td>${s.code}</td><td>${rows.length}</td><td>${brc}</td><td class="${pct>10?'snap-bad':'snap-good'}">${pct.toFixed(2)}%</td></tr>`;
+  });
+
+  const now = new Date();
+  document.getElementById('snapshotSheet').innerHTML = `
+    <h2>Purplle CPT Performance — Daily Snapshot</h2>
+    <div class="meta">Auto-generated ${now.toDateString()}, 09:00 IST for the previous business day · distributed to Control Tower, FC leads &amp; leadership DL</div>
+    <div class="snap-section-title">Overall CPT Miss</div>
+    <table style="width:100%;"><tr><th>Fulfillment Type</th><th>Total Shipments</th><th>Handover Breach</th><th>Breach %</th></tr>
+      <tr><td>NON-RTS</td><td>${byFul['NON-RTS'].total}</td><td>${byFul['NON-RTS'].breach}</td><td class="${byFul['NON-RTS'].pct>1.5?'snap-bad':'snap-good'}">${byFul['NON-RTS'].pct}%</td></tr>
+      <tr><td>RTS</td><td>${byFul['RTS'].total}</td><td>${byFul['RTS'].breach}</td><td class="${byFul['RTS'].pct>1.5?'snap-bad':'snap-good'}">${byFul['RTS'].pct}%</td></tr>
+      <tr style="font-weight:700;"><td>Total</td><td>${totalAll}</td><td>${totalBreach}</td><td class="${(totalBreach/totalAll*100)>1.5?'snap-bad':'snap-good'}">${(totalBreach/totalAll*100).toFixed(2)}%</td></tr>
+    </table>
+    <div class="snap-section-title">Site-Wise CPT Miss</div>
+    <table style="width:100%;"><tr><th>Site</th><th>Total Shipments</th><th>Handover Breach</th><th>Breach %</th></tr>${siteRows}</table>
+    <div class="snap-section-title">Retailer Shipments — Flat 48h Dwell SLA (Separate from CPT)</div>
+    <table style="width:100%;"><tr><th>Site</th><th>Total Retailer Shipments</th><th>Breached (&gt;48h dwell)</th><th>Breach %</th></tr>
+      ${retSiteRows}
+      <tr style="font-weight:700;"><td>Total</td><td>${retAll.length}</td><td>${retBreach}</td><td class="${retPct>10?'snap-bad':'snap-good'}">${retPct.toFixed(2)}%</td></tr>
+    </table>
+    <div class="snap-section-title">Top RCA Reasons (network, captured in-app)</div>
+    <table style="width:100%;"><tr><th>Sub-reason</th><th>Count</th></tr>
+      ${topList.length? topList.map(t=>`<tr><td>${t[0]}</td><td>${t[1]}</td></tr>`).join('') : '<tr><td colspan="2" style="text-align:center;color:#888;">No RCA captured yet this session — tag a few from the grid, then regenerate.</td></tr>'}
+    </table>`;
+}
+document.getElementById('genSnapshotBtn').addEventListener('click', renderSnapshot);
+
+/* =====================================================================
+   MASTER RENDER + CLOCK
+===================================================================== */
+function renderAll(){
+  renderSiteSelect();
+  if(state.section==='overview') renderOverview();
+  if(state.section==='grid') renderGrid();
+  if(state.section==='hero') renderHero();
+  if(state.section==='easyecom') renderEasyEcom();
+  if(state.section==='d2c') renderD2C();
+  if(state.section==='loadbalancer') renderLoadBalancer();
+  if(state.section==='padding') renderPaddingInsights();
+  if(state.section==='cutoff') renderCutoffMaster();
+  if(state.section==='rca') renderRCA();
+  if(state.section==='snapshot') renderSnapshot();
+}
+document.getElementById('simNowLabel').textContent = minToTime(REFERENCE_NOW_MIN);
+function tickClock(){ document.getElementById('liveClock').textContent = new Date().toLocaleTimeString('en-IN',{hour12:false}); }
+setInterval(tickClock,1000); tickClock();
+renderAll();
+</script>
+</body>
+</html>
